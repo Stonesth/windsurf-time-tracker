@@ -15,8 +15,8 @@ import {
   Box,
 } from '@mui/material';
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
-import { db } from '../../firebase';
-import { useProjects, Project } from '../../hooks/useProjects';
+import { db } from '../../../lib/firebase';
+import { useProjects, Project } from '../../../hooks/useProjects';
 
 interface TimeEntry {
   id: string;

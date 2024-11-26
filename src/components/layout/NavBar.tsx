@@ -13,8 +13,8 @@ import {
   Container,
 } from '@mui/material';
 import { AccountCircle } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
-import { authService } from '../services/authService';
+import { useAuth } from '../../contexts/AuthContext';
+import { authService } from '../../services/authService';
 
 const NavBar = () => {
   const navigate = useNavigate();

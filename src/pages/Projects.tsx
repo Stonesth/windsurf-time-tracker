@@ -27,10 +27,11 @@ import {
   Search as SearchIcon,
 } from '@mui/icons-material';
 import { collection, addDoc, deleteDoc, doc, updateDoc, getDocs, query, where, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import ProjectTimer from '../components/ProjectTimer/ProjectTimer';
-import TimeEntriesList from '../components/TimeEntries/TimeEntriesList';
+import ProjectTimer from '../components/time/ProjectTimer/ProjectTimer';
+import ProjectList from '../components/projects/ProjectList';
+import TimeEntriesList from '../components/time/TimeEntries/TimeEntriesList';
 
 interface Project {
   id: string;

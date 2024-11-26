@@ -17,7 +17,8 @@ import {
   Tooltip,
 } from '@mui/material';
 import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { db } from '../../../lib/firebase';
+import { useAuth } from '../../../contexts/AuthContext';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import EditIcon from '@mui/icons-material/Edit';
 import EditTimeEntryDialog from './EditTimeEntryDialog';

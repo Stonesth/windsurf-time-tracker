@@ -15,8 +15,8 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import PauseIcon from '@mui/icons-material/Pause';
 import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase';
-import { useAuth } from '../contexts/AuthContext';
+import { db } from '../../lib/firebase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Project {
   id: string;
@@ -230,3 +230,5 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ onTimeUpdate }) => {
     </Box>
   );
 };
+
+export default TimeTracker;

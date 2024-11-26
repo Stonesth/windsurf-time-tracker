@@ -18,8 +18,8 @@ import {
   Notes as NotesIcon,
 } from '@mui/icons-material';
 import { doc, updateDoc, collection, addDoc, Timestamp, increment } from 'firebase/firestore';
-import { db } from '../../firebase';
-import { useAuth } from '../../contexts/AuthContext';
+import { db } from '../../../lib/firebase';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface TimeEntry {
   startTime: Date;
