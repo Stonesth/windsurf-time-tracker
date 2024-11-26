@@ -33,7 +33,7 @@ const NavBar = () => {
     try {
       await authService.logout();
       handleClose();
-      navigate('/auth');
+      navigate('/login');
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
     }
