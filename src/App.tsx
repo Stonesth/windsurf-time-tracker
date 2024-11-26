@@ -10,6 +10,7 @@ import Profile from './components/Profile/Profile';
 import Projects from './pages/Projects';
 import Dashboard from './pages/Dashboard';
 import LoginForm from './components/Auth/LoginForm';
+import SignUpForm from './components/Auth/SignUpForm';
 import { CircularProgress, Box } from '@mui/material';
 
 // Composant pour protéger les routes
@@ -83,6 +84,10 @@ const AppRoutes = () => {
         <Route
           path="/login"
           element={currentUser ? <Navigate to="/dashboard" /> : <LoginForm />}
+        />
+        <Route
+          path="/signup"
+          element={currentUser ? <Navigate to="/dashboard" /> : <SignUpForm />}
         />
       </Routes>
     </>

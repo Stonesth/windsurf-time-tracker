@@ -9,13 +9,14 @@ import {
   CircularProgress,
   Link,
 } from '@mui/material';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 
-const LoginForm = () => {
+const SignUpForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -23,18 +24,31 @@ const LoginForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (password !== confirmPassword) {
+      setError('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Le mot de passe doit contenir au moins 6 caractères');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      console.log('Connexion réussie');
+      await createUserWithEmailAndPassword(auth, email, password);
+      console.log('Compte créé avec succès');
       navigate('/projects');
     } catch (error: any) {
-      console.error('Erreur de connexion:', error);
+      console.error('Erreur lors de la création du compte:', error);
       setError(
-        error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found'
-          ? 'Email ou mot de passe incorrect'
-          : 'Une erreur est survenue lors de la connexion'
+        error.code === 'auth/email-already-in-use'
+          ? 'Cette adresse email est déjà utilisée'
+          : error.code === 'auth/invalid-email'
+          ? 'Adresse email invalide'
+          : 'Une erreur est survenue lors de la création du compte'
       );
     } finally {
       setLoading(false);
@@ -52,7 +66,7 @@ const LoginForm = () => {
         }}
       >
         <Typography component="h1" variant="h5">
-          Connexion
+          Créer un compte
         </Typography>
         {error && (
           <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
@@ -81,9 +95,22 @@ const LoginForm = () => {
             label="Mot de passe"
             type="password"
             id="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="confirmPassword"
+            label="Confirmer le mot de passe"
+            type="password"
+            id="confirmPassword"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={loading}
           />
           <Button
@@ -96,12 +123,12 @@ const LoginForm = () => {
             {loading ? (
               <CircularProgress size={24} color="inherit" />
             ) : (
-              'Se connecter'
+              'Créer un compte'
             )}
           </Button>
           <Box sx={{ textAlign: 'center' }}>
-            <Link component={RouterLink} to="/signup" variant="body2">
-              Pas encore de compte ? S'inscrire
+            <Link component={RouterLink} to="/login" variant="body2">
+              Déjà un compte ? Se connecter
             </Link>
           </Box>
         </Box>
@@ -110,4 +137,4 @@ const LoginForm = () => {
   );
 };
 
-export default LoginForm;
+export default SignUpForm;
