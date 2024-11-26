@@ -1,24 +1,27 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import {
   Container,
-  Grid,
-  Paper,
   Typography,
-  Button,
   Box,
+  Grid,
+  Button,
+  Paper,
+  CardContent,
+  Alert,
   CircularProgress,
   Card,
-  CardContent,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import TimeTracker from '../components/time/TimeTracker';
+import TimeStats from '../components/time/TimeStats';
 import ProjectList from '../components/projects/ProjectList';
 import WeeklyReport from '../components/time/WeeklyReport';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { formatDuration } from '../utils/timeUtils';
+import { apiService } from '../services/apiService';
 
 interface DashboardStats {
   todayTime: number;
@@ -30,64 +33,59 @@ interface DashboardStats {
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState<DashboardStats>({
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [authStatus, setAuthStatus] = React.useState<string>('');
+  const [authError, setAuthError] = React.useState<string>('');
+  const [stats, setStats] = React.useState<DashboardStats>({
     todayTime: 0,
     weekTime: 0,
     activeProjects: 0,
     activeTasks: 0,
   });
 
-  const fetchStats = useCallback(async () => {
-    if (!currentUser) return;
+  const fetchStats = React.useCallback(async () => {
+    if (!currentUser) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      // Calculer les dates de début pour aujourd'hui et cette semaine
       const now = new Date();
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const startOfWeek = new Date(now);
       startOfWeek.setDate(startOfWeek.getDate() - now.getDay());
       startOfWeek.setHours(0, 0, 0, 0);
 
-      // Requête unique pour toutes les entrées de temps
       const timeEntriesQuery = query(
         collection(db, 'timeEntries'),
-        where('userId', '==', currentUser.uid)
+        where('userId', '==', currentUser.uid),
+        where('startTime', '>=', Timestamp.fromDate(startOfWeek))
       );
 
-      // Requête pour les projets actifs
       const projectsQuery = query(
         collection(db, 'projects'),
         where('createdBy', '==', currentUser.uid)
       );
 
-      // Exécuter les requêtes en parallèle
       const [timeEntriesSnapshot, projectsSnapshot] = await Promise.all([
         getDocs(timeEntriesQuery),
         getDocs(projectsQuery)
       ]);
 
-      // Filtrer et calculer les statistiques
-      const todayTime = timeEntriesSnapshot.docs.reduce((sum, doc) => {
-        const data = doc.data();
-        const startTime = data.startTime.toDate();
-        return startTime >= startOfToday ? sum + data.duration : sum;
-      }, 0);
-
-      const weekTime = timeEntriesSnapshot.docs.reduce((sum, doc) => {
-        const data = doc.data();
-        const startTime = data.startTime.toDate();
-        return startTime >= startOfWeek ? sum + data.duration : sum;
-      }, 0);
-
-      const activeProjects = projectsSnapshot.size;
-
-      // Compter les tâches uniques (basé sur les descriptions uniques)
+      let todayTime = 0;
+      let weekTime = 0;
       const uniqueTasks = new Set();
+
       timeEntriesSnapshot.docs.forEach(doc => {
         const data = doc.data();
         const startTime = data.startTime.toDate();
-        if (startTime >= startOfWeek && data.notes) {
+        const duration = data.duration || 0;
+
+        weekTime += duration;
+        if (startTime >= startOfToday) {
+          todayTime += duration;
+        }
+        if (data.notes) {
           uniqueTasks.add(data.notes);
         }
       });
@@ -95,7 +93,7 @@ const Dashboard: React.FC = () => {
       setStats({
         todayTime,
         weekTime,
-        activeProjects,
+        activeProjects: projectsSnapshot.size,
         activeTasks: uniqueTasks.size,
       });
     } catch (error) {
@@ -105,7 +103,18 @@ const Dashboard: React.FC = () => {
     }
   }, [currentUser]);
 
-  useEffect(() => {
+  const testBackendAuth = async () => {
+    try {
+      const result = await apiService.testAuth();
+      setAuthStatus(`Authentifié en tant que : ${result.email}`);
+      setAuthError('');
+    } catch (err) {
+      setAuthError('Erreur d\'authentification avec le backend');
+      setAuthStatus('');
+    }
+  };
+
+  React.useEffect(() => {
     fetchStats();
   }, [fetchStats]);
 
@@ -113,7 +122,7 @@ const Dashboard: React.FC = () => {
     navigate('/projects', { state: { openNewProject: true } });
   };
 
-  const handleTimeUpdate = useCallback(() => {
+  const handleTimeUpdate = React.useCallback(() => {
     fetchStats();
   }, [fetchStats]);
 
@@ -132,111 +141,144 @@ const Dashboard: React.FC = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Grid container spacing={3}>
-        {/* En-tête */}
-        <Grid item xs={12}>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h4" component="h1" gutterBottom>
-              Tableau de bord
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={handleNewProject}
-            >
-              Nouveau Projet
-            </Button>
-          </Box>
-        </Grid>
+      <Box sx={{ my: 4 }}>
+        {/* Test Backend Auth */}
+        <Box sx={{ mb: 4 }}>
+          <Button 
+            variant="contained" 
+            onClick={testBackendAuth}
+            sx={{ mb: 2 }}
+          >
+            Tester l'authentification backend
+          </Button>
+          {authStatus && (
+            <Alert severity="success" sx={{ mb: 1 }}>
+              {authStatus}
+            </Alert>
+          )}
+          {authError && (
+            <Alert severity="error" sx={{ mb: 1 }}>
+              {authError}
+            </Alert>
+          )}
+        </Box>
 
-        {/* Statistiques rapides */}
-        <Grid item xs={12}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography color="textSecondary" gutterBottom>
-                    Temps aujourd'hui
-                  </Typography>
-                  <Typography variant="h5">
-                    {formatDuration(stats.todayTime)}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
+        <Grid container spacing={3}>
+          {/* En-tête */}
+          <Grid item xs={12}>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Typography variant="h4" component="h1" gutterBottom>
+                Tableau de bord
+              </Typography>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={handleNewProject}
+              >
+                Nouveau Projet
+              </Button>
+            </Box>
+          </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography color="textSecondary" gutterBottom>
-                    Temps cette semaine
-                  </Typography>
-                  <Typography variant="h5">
-                    {formatDuration(stats.weekTime)}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
+          {/* Statistiques rapides */}
+          <Grid item xs={12}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Temps aujourd'hui
+                    </Typography>
+                    <Typography variant="h5">
+                      {formatDuration(stats.todayTime)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography color="textSecondary" gutterBottom>
-                    Projets actifs
-                  </Typography>
-                  <Typography variant="h5">
-                    {stats.activeProjects}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Temps cette semaine
+                    </Typography>
+                    <Typography variant="h5">
+                      {formatDuration(stats.weekTime)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Typography color="textSecondary" gutterBottom>
-                    Tâches uniques
-                  </Typography>
-                  <Typography variant="h5">
-                    {stats.activeTasks}
-                  </Typography>
-                </CardContent>
-              </Card>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Projets actifs
+                    </Typography>
+                    <Typography variant="h5">
+                      {stats.activeProjects}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3}>
+                <Card>
+                  <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                      Tâches uniques
+                    </Typography>
+                    <Typography variant="h5">
+                      {stats.activeTasks}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
             </Grid>
           </Grid>
-        </Grid>
 
-        {/* Suivi du temps en cours */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Suivi du temps
-            </Typography>
-            <TimeTracker onTimeUpdate={handleTimeUpdate} />
-          </Paper>
-        </Grid>
+          {/* Suivi du temps en cours */}
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Suivi du temps
+              </Typography>
+              <TimeTracker onTimeUpdate={handleTimeUpdate} />
+            </Paper>
+          </Grid>
 
-        {/* Rapport hebdomadaire */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Rapport hebdomadaire
-            </Typography>
-            <WeeklyReport onTimeUpdate={handleTimeUpdate} />
-          </Paper>
-        </Grid>
+          {/* Rapport hebdomadaire */}
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Rapport hebdomadaire
+              </Typography>
+              <WeeklyReport onTimeUpdate={handleTimeUpdate} />
+            </Paper>
+          </Grid>
 
-        {/* Liste des projets */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Projets récents
-            </Typography>
-            <ProjectList onTimeUpdate={handleTimeUpdate} />
-          </Paper>
+          {/* Liste des projets */}
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Projets récents
+              </Typography>
+              <ProjectList onTimeUpdate={handleTimeUpdate} />
+            </Paper>
+          </Grid>
+
+          {/* Statistiques du temps */}
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Statistiques du temps
+              </Typography>
+              <TimeStats />
+            </Paper>
+          </Grid>
         </Grid>
-      </Grid>
+      </Box>
     </Container>
   );
 };
