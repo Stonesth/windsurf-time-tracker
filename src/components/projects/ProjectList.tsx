@@ -160,3 +160,5 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onTimeUpdate }) => {
     </Box>
   );
 };
+
+export default ProjectList;

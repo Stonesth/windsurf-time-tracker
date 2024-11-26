@@ -12,11 +12,11 @@ import {
   CardContent,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { TimeTracker } from '../components/TimeTracker';
-import { ProjectList } from '../components/ProjectList';
-import { WeeklyReport } from '../components/WeeklyReport';
+import TimeTracker from '../components/time/TimeTracker';
+import ProjectList from '../components/projects/ProjectList';
+import WeeklyReport from '../components/time/WeeklyReport';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDuration } from '../utils/timeUtils';
 

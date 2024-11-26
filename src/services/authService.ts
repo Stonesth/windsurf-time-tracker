@@ -5,7 +5,7 @@ import {
   updateProfile,
   AuthError 
 } from 'firebase/auth';
-import { auth, db } from '../firebase';
+import { auth } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
 interface UserRegistration {

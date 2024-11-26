@@ -9,8 +9,8 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
-import { useAuth } from '../contexts/AuthContext';
+import { db } from '../../lib/firebase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface DayReport {
   day: string;
@@ -172,3 +172,5 @@ export const WeeklyReport: React.FC<WeeklyReportProps> = ({ onTimeUpdate }) => {
     </Box>
   );
 };
+
+export default WeeklyReport;

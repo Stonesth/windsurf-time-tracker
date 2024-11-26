@@ -13,8 +13,8 @@ import {
   Container,
 } from '@mui/material';
 import { AccountCircle } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
-import { authService } from '../services/authService';
+import { useAuth } from '../../contexts/AuthContext';
+import { authService } from '../../services/authService';
 
 const NavBar = () => {
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ const NavBar = () => {
     try {
       await authService.logout();
       handleClose();
-      navigate('/auth');
+      navigate('/login');
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
     }

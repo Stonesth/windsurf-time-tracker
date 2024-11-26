@@ -1,15 +1,15 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import { theme } from './theme';
+import './styles/App.css';
+import theme from './styles/theme';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import NavBar from './components/layout/NavBar';
 import Home from './pages/Home';
-import NavBar from './components/NavBar';
 import Profile from './components/Profile/Profile';
 import Projects from './pages/Projects';
 import Dashboard from './pages/Dashboard';
 import LoginForm from './components/Auth/LoginForm';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CircularProgress, Box } from '@mui/material';
 
 // Composant pour protéger les routes
@@ -92,10 +92,11 @@ const AppRoutes = () => {
 function App() {
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline />
       <AuthProvider>
         <Router>
-          <AppRoutes />
+          <div className="App">
+            <AppRoutes />
+          </div>
         </Router>
       </AuthProvider>
     </ThemeProvider>
