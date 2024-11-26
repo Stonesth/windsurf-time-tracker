@@ -42,6 +42,22 @@ class ApiService {
     }
     return response.json();
   }
+
+  async get<T>(endpoint: string): Promise<T> {
+    const response = await this.fetchWithAuth(endpoint);
+    if (!response.ok) throw new Error(`GET request failed: ${response.statusText}`);
+    return response.json();
+  }
+
+  async post<T>(endpoint: string, data: any): Promise<T> {
+    const response = await this.fetchWithAuth(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error(`POST request failed: ${response.statusText}`);
+    return response.json();
+  }
 }
 
 export const apiService = new ApiService();

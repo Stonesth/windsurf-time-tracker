@@ -50,16 +50,9 @@ const Dashboard: React.FC = () => {
     }
 
     try {
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(startOfWeek.getDate() - now.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
-
       const timeEntriesQuery = query(
         collection(db, 'timeEntries'),
-        where('userId', '==', currentUser.uid),
-        where('startTime', '>=', Timestamp.fromDate(startOfWeek))
+        where('userId', '==', currentUser.uid)
       );
 
       const projectsQuery = query(
@@ -72,22 +65,41 @@ const Dashboard: React.FC = () => {
         getDocs(projectsQuery)
       ]);
 
+      console.log('Nombre d\'entrées de temps:', timeEntriesSnapshot.size);
+      console.log('Nombre de projets:', projectsSnapshot.size);
+
       let todayTime = 0;
       let weekTime = 0;
       const uniqueTasks = new Set();
 
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(startOfWeek.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+
       timeEntriesSnapshot.docs.forEach(doc => {
         const data = doc.data();
+        console.log('Entrée de temps:', data);
         const startTime = data.startTime.toDate();
         const duration = data.duration || 0;
 
-        weekTime += duration;
-        if (startTime >= startOfToday) {
-          todayTime += duration;
+        if (startTime >= startOfWeek) {
+          weekTime += duration;
+          if (startTime >= startOfToday) {
+            todayTime += duration;
+          }
         }
         if (data.notes) {
           uniqueTasks.add(data.notes);
         }
+      });
+
+      console.log('Statistiques calculées:', {
+        todayTime,
+        weekTime,
+        activeProjects: projectsSnapshot.size,
+        activeTasks: uniqueTasks.size,
       });
 
       setStats({
@@ -227,7 +239,7 @@ const Dashboard: React.FC = () => {
                 <Card>
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
-                      Tâches uniques
+                      Tâches actives
                     </Typography>
                     <Typography variant="h5">
                       {stats.activeTasks}

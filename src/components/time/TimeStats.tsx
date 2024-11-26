@@ -8,8 +8,9 @@ import {
   Card,
   CardContent,
 } from '@mui/material';
-import { timeEntryService } from '../../services/timeEntryService';
-import { projectService } from '../../services/projectService';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface StatsData {
   totalHours: number;
@@ -27,23 +28,69 @@ const TimeStats: React.FC = () => {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [projects, setProjects] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(true);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentUser]);
 
   const loadData = async () => {
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const [statsData, projectsData] = await Promise.all([
-        timeEntryService.getTimeStats(),
-        projectService.getAllProjects(),
+      // Récupérer les entrées de temps
+      const timeEntriesQuery = query(
+        collection(db, 'timeEntries'),
+        where('userId', '==', currentUser.uid)
+      );
+
+      // Récupérer les projets
+      const projectsQuery = query(
+        collection(db, 'projects'),
+        where('createdBy', '==', currentUser.uid)
+      );
+
+      const [timeEntriesSnapshot, projectsSnapshot] = await Promise.all([
+        getDocs(timeEntriesQuery),
+        getDocs(projectsQuery)
       ]);
-      
-      // Créer un map des projets pour un accès rapide
-      const projectMap = projectsData.reduce((acc, project) => {
-        acc[project.id] = project.name;
+
+      // Créer un map des projets
+      const projectMap = projectsSnapshot.docs.reduce((acc, doc) => {
+        acc[doc.id] = doc.data().name;
         return acc;
       }, {} as { [key: string]: string });
+
+      // Calculer les statistiques
+      let totalDuration = 0;
+      const projectBreakdown: { [key: string]: number } = {};
+
+      timeEntriesSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const duration = data.duration || 0;
+        totalDuration += duration;
+
+        if (data.projectId) {
+          projectBreakdown[data.projectId] = (projectBreakdown[data.projectId] || 0) + duration;
+        }
+      });
+
+      // Calculer les pourcentages pour chaque projet
+      const statsData: StatsData = {
+        totalHours: totalDuration / 60, // Convertir en heures
+        entriesCount: timeEntriesSnapshot.size,
+        averageDuration: timeEntriesSnapshot.size ? totalDuration / timeEntriesSnapshot.size : 0,
+        projectBreakdown: Object.entries(projectBreakdown).reduce((acc, [projectId, duration]) => {
+          acc[projectId] = {
+            hours: duration / 60,
+            percentage: (duration / totalDuration) * 100
+          };
+          return acc;
+        }, {} as StatsData['projectBreakdown'])
+      };
 
       setStats(statsData);
       setProjects(projectMap);
@@ -56,7 +103,7 @@ const TimeStats: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+      <Box display="flex" justifyContent="center" p={3}>
         <CircularProgress />
       </Box>
     );
@@ -64,114 +111,69 @@ const TimeStats: React.FC = () => {
 
   if (!stats) {
     return (
-      <Typography color="text.secondary">
-        No statistics available yet. Start tracking time to see your stats!
-      </Typography>
+      <Paper sx={{ p: 3, mt: 3 }}>
+        <Typography>Aucune statistique disponible</Typography>
+      </Paper>
     );
   }
 
   return (
-    <Box sx={{ mb: 4 }}>
+    <Paper sx={{ p: 3, mt: 3 }}>
       <Typography variant="h6" gutterBottom>
-        Time Tracking Statistics
+        Statistiques détaillées
       </Typography>
-      
       <Grid container spacing={3}>
-        {/* Statistiques générales */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={4}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                Total Hours
+              <Typography color="textSecondary" gutterBottom>
+                Heures totales
               </Typography>
-              <Typography variant="h4">
+              <Typography variant="h5">
                 {stats.totalHours.toFixed(1)}h
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={4}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                Number of Entries
+              <Typography color="textSecondary" gutterBottom>
+                Nombre d'entrées
               </Typography>
-              <Typography variant="h4">
+              <Typography variant="h5">
                 {stats.entriesCount}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} sm={4}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom>
-                Average Duration
+              <Typography color="textSecondary" gutterBottom>
+                Durée moyenne
               </Typography>
-              <Typography variant="h4">
-                {stats.averageDuration.toFixed(1)}h
+              <Typography variant="h5">
+                {(stats.averageDuration / 60).toFixed(1)}h
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-
-        {/* Répartition par projet */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2, mt: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Time Distribution by Project
-            </Typography>
-            <Grid container spacing={2}>
-              {Object.entries(stats.projectBreakdown).map(([projectId, data]) => (
-                <Grid item xs={12} key={projectId}>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle1">
-                      {projects[projectId] || 'Unknown Project'}
-                    </Typography>
-                    <Box
-                      sx={{
-                        height: 20,
-                        width: '100%',
-                        bgcolor: 'grey.100',
-                        borderRadius: 1,
-                        position: 'relative',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          height: '100%',
-                          width: `${data.percentage}%`,
-                          bgcolor: 'primary.main',
-                          position: 'absolute',
-                          transition: 'width 0.5s ease-in-out',
-                        }}
-                      />
-                    </Box>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        mt: 0.5,
-                      }}
-                    >
-                      <Typography variant="body2" color="text.secondary">
-                        {data.hours.toFixed(1)}h
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {data.percentage.toFixed(1)}%
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-          </Paper>
-        </Grid>
       </Grid>
-    </Box>
+
+      <Box mt={3}>
+        <Typography variant="h6" gutterBottom>
+          Répartition par projet
+        </Typography>
+        {Object.entries(stats.projectBreakdown).map(([projectId, data]) => (
+          <Box key={projectId} mb={2}>
+            <Typography variant="subtitle1">
+              {projects[projectId] || 'Projet inconnu'} - {data.hours.toFixed(1)}h ({data.percentage.toFixed(1)}%)
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    </Paper>
   );
 };
 

@@ -13,23 +13,19 @@ class ProjectService {
   private readonly baseUrl = '/api/projects';
 
   async getAllProjects(): Promise<Project[]> {
-    const response = await apiService.get(this.baseUrl);
-    return response.data;
+    return await apiService.get<Project[]>(this.baseUrl);
   }
 
   async getProject(id: string): Promise<Project> {
-    const response = await apiService.get(`${this.baseUrl}/${id}`);
-    return response.data;
+    return await apiService.get<Project>(`${this.baseUrl}/${id}`);
   }
 
   async createProject(project: Omit<Project, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'>): Promise<Project> {
-    const response = await apiService.post(this.baseUrl, project);
-    return response.data;
+    return await apiService.post<Project>(this.baseUrl, project);
   }
 
   async updateProject(id: string, project: Partial<Omit<Project, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'>>): Promise<Project> {
-    const response = await apiService.put(`${this.baseUrl}/${id}`, project);
-    return response.data;
+    return await apiService.put<Project>(`${this.baseUrl}/${id}`, project);
   }
 
   async deleteProject(id: string): Promise<void> {
