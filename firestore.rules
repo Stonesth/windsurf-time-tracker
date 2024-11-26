@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Fonction helper pour vérifier si l'utilisateur est authentifié
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Fonction helper pour vérifier si l'utilisateur est membre du projet
+    function isProjectMember(projectId) {
+      let project = get(/databases/$(database)/documents/projects/$(projectId));
+      return isAuthenticated() && (
+        project.data.createdBy == request.auth.uid ||
+        request.auth.uid in project.data.members
+      );
+    }
+
+    // Règles pour la collection projects
+    match /projects/{projectId} {
+      // Autoriser la lecture si l'utilisateur est authentifié
+      allow read: if isAuthenticated();
+      
+      // Autoriser la création si l'utilisateur est authentifié
+      allow create: if isAuthenticated();
+      
+      // Autoriser la mise à jour si l'utilisateur est membre du projet
+      allow update: if isAuthenticated();
+      
+      // Autoriser la suppression si l'utilisateur est le créateur
+      allow delete: if isAuthenticated() && 
+        resource.data.createdBy == request.auth.uid;
+
+      // Règles pour la sous-collection timeEntries
+      match /timeEntries/{entryId} {
+        // Autoriser toutes les opérations si l'utilisateur est authentifié
+        allow read, write: if isAuthenticated();
+      }
+    }
+  }
+}
