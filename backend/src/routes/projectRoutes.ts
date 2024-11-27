@@ -1,16 +1,16 @@
-import express from 'express';
+import express, { Router, RequestHandler } from 'express';
 import { projectController } from '../controllers/projectController';
 import { authMiddleware } from '../middleware/auth';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Appliquer le middleware d'authentification à toutes les routes
-router.use(authMiddleware);
+router.use(authMiddleware as RequestHandler);
 
 // Routes des projets
-router.get('/', projectController.getProjects);
-router.post('/', projectController.createProject);
-router.put('/:projectId', projectController.updateProject);
-router.delete('/:projectId', projectController.deleteProject);
+router.get('/', projectController.getProjects as RequestHandler);
+router.post('/', projectController.createProject as RequestHandler);
+router.put('/:projectId', projectController.updateProject as RequestHandler);
+router.delete('/:projectId', projectController.deleteProject as RequestHandler);
 
 export default router;
