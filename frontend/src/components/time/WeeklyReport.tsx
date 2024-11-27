@@ -196,3 +196,5 @@ export const WeeklyReport: React.FC<WeeklyReportProps> = ({ onTimeUpdate }) => {
     </Box>
   );
 };
+
+export default WeeklyReport;
