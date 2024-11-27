@@ -49,11 +49,16 @@ service cloud.firestore {
     match /timeEntries/{entryId} {
       allow read: if isAuthenticated();
       // Seuls les utilisateurs avec des rôles non-READ peuvent créer des entrées
-      allow create: if isAuthenticated() && canWrite();
-      allow update, delete: if isAuthenticated() && (
-        isAdmin() ||
-        (canWrite() && resource.data.userId == request.auth.uid)
-      );
+      allow create, update: if isAuthenticated() && canWrite();
+      allow delete: if isAdmin();
+    }
+
+    // Règles pour la collection settings
+    match /settings/{settingId} {
+      // Tous les utilisateurs authentifiés peuvent lire les paramètres
+      allow read: if isAuthenticated();
+      // Seuls les admins peuvent modifier les paramètres
+      allow create, update, delete: if isAdmin();
     }
 
     // Règles pour la collection projects
