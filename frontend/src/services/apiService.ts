@@ -27,14 +27,6 @@ class ApiService {
     });
   }
 
-  async testAuth(): Promise<{ message: string; uid: string; email: string }> {
-    const response = await this.fetchWithAuth(API_ENDPOINTS.AUTH_TEST);
-    if (!response.ok) {
-      throw new Error('Authentication test failed');
-    }
-    return response.json();
-  }
-
   async checkHealth(): Promise<{ status: string; message: string }> {
     const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.HEALTH}`);
     if (!response.ok) {

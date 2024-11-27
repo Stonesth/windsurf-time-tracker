@@ -21,7 +21,6 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { formatDuration } from '../utils/timeUtils';
-import { apiService } from '../services/apiService';
 import { canWrite } from '../utils/roleUtils';
 
 interface DashboardStats {
@@ -35,8 +34,6 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser, userRole } = useAuth();
   const [isLoading, setIsLoading] = React.useState(true);
-  const [authStatus, setAuthStatus] = React.useState<string>('');
-  const [authError, setAuthError] = React.useState<string>('');
   const [stats, setStats] = React.useState<DashboardStats>({
     todayTime: 0,
     weekTime: 0,
@@ -116,17 +113,6 @@ const Dashboard: React.FC = () => {
     }
   }, [currentUser]);
 
-  const testBackendAuth = async () => {
-    try {
-      const result = await apiService.testAuth();
-      setAuthStatus(`Authentifié en tant que : ${result.email}`);
-      setAuthError('');
-    } catch (err) {
-      setAuthError('Erreur d\'authentification avec le backend');
-      setAuthStatus('');
-    }
-  };
-
   React.useEffect(() => {
     fetchStats();
   }, [fetchStats]);
@@ -155,27 +141,6 @@ const Dashboard: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ my: 4 }}>
-        {/* Test Backend Auth */}
-        <Box sx={{ mb: 4 }}>
-          <Button 
-            variant="contained" 
-            onClick={testBackendAuth}
-            sx={{ mb: 2 }}
-          >
-            Tester l'authentification backend
-          </Button>
-          {authStatus && (
-            <Alert severity="success" sx={{ mb: 1 }}>
-              {authStatus}
-            </Alert>
-          )}
-          {authError && (
-            <Alert severity="error" sx={{ mb: 1 }}>
-              {authError}
-            </Alert>
-          )}
-        </Box>
-
         <Grid container spacing={3}>
           {/* En-tête */}
           <Grid item xs={12}>
