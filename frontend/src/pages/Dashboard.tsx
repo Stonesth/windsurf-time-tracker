@@ -14,7 +14,6 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import TimeTracker from '../components/time/TimeTracker';
 import TimeStats from '../components/time/TimeStats';
-import ProjectList from '../components/projects/ProjectList';
 import WeeklyReport from '../components/time/WeeklyReport';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -235,16 +234,6 @@ const Dashboard: React.FC = () => {
                 Rapport hebdomadaire
               </Typography>
               <WeeklyReport onTimeUpdate={handleTimeUpdate} />
-            </Paper>
-          </Grid>
-
-          {/* Liste des projets */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Projets récents
-              </Typography>
-              <ProjectList onTimeUpdate={handleTimeUpdate} />
             </Paper>
           </Grid>
 
