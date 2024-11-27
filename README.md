@@ -105,6 +105,37 @@ Le projet utilise Firebase pour le déploiement :
 2. Backend : Fonctions Firebase
 3. Base de données : Firebase Firestore
 
+### Prérequis
+- Avoir Firebase CLI installé : `npm install -g firebase-tools`
+- Être connecté à Firebase : `firebase login`
+- Avoir les droits sur le projet Firebase `timetrackingwindsurf`
+
+### Configuration Firebase
+Le fichier de configuration Firebase (`firebase.json`) se trouve à la racine du projet. Il contient les configurations pour :
+- L'hébergement (hosting)
+- Firestore
+- Les règles de stockage
+
+### Étapes de déploiement
+
+1. Construction du frontend :
+```bash
+cd frontend
+npm run build
+```
+
+2. Déploiement sur Firebase :
+```bash
+firebase deploy --only hosting --project timetrackingwindsurf
+```
+
+L'application sera déployée et accessible à l'URL : https://timetrackingwindsurf.web.app
+
+### Notes importantes
+- Assurez-vous que le dossier `frontend/dist` existe et contient la dernière version buildée
+- Le fichier `firebase.json` doit rester à la racine du projet
+- Les fichiers de règles et d'index sont stockés dans le dossier `config/`
+
 ## Contribution
 
 1. Créer une branche pour votre fonctionnalité
