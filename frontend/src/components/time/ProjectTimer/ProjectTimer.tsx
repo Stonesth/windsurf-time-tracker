@@ -150,6 +150,14 @@ const ProjectTimer: React.FC<ProjectTimerProps> = ({ projectId, projectName, onT
     setOpenNotesDialog(false);
   };
 
+  const toggleTimer = () => {
+    if (isRunning) {
+      handlePause();
+    } else {
+      handleStart();
+    }
+  };
+
   return (
     <>
       <Box display="flex" alignItems="center" gap={1}>
@@ -160,44 +168,25 @@ const ProjectTimer: React.FC<ProjectTimerProps> = ({ projectId, projectName, onT
         {isSaving ? (
           <CircularProgress size={24} />
         ) : (
-          <>
-            {!isRunning ? (
-              <IconButton 
-                color="primary" 
-                onClick={handleStart}
-                disabled={!canWrite(userRole) || isSaving}
-              >
-                <PlayIcon />
-              </IconButton>
-            ) : (
-              <IconButton 
-                color="primary" 
-                onClick={handlePause}
-                disabled={!canWrite(userRole) || isSaving}
-              >
-                <PauseIcon />
-              </IconButton>
-            )}
-            
-            {isRunning && (
-              <>
-                <IconButton 
-                  color="error" 
-                  onClick={handleStop}
-                  disabled={!canWrite(userRole) || isSaving}
-                >
-                  <StopIcon />
-                </IconButton>
-                <IconButton 
-                  color="primary" 
-                  onClick={() => setOpenNotesDialog(true)}
-                  disabled={!canWrite(userRole) || isSaving}
-                >
-                  <NotesIcon />
-                </IconButton>
-              </>
-            )}
-          </>
+          <Button
+            variant="contained"
+            color={isRunning ? 'error' : 'primary'}
+            onClick={toggleTimer}
+            size="small"
+            startIcon={isRunning ? <StopIcon /> : <PlayIcon />}
+          >
+            {isRunning ? 'Stop' : 'Start'}
+          </Button>
+        )}
+        
+        {isRunning && (
+          <IconButton 
+            color="primary" 
+            onClick={() => setOpenNotesDialog(true)}
+            disabled={!canWrite(userRole) || isSaving}
+          >
+            <NotesIcon />
+          </IconButton>
         )}
       </Box>
 
