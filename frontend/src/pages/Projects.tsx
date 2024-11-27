@@ -266,14 +266,19 @@ const Projects = () => {
               sx={{ 
                 p: 2,
                 cursor: 'pointer',
-                '&:hover': {
-                  bgcolor: 'action.hover'
-                }
               }}
-              onClick={() => toggleProjectExpansion(project.id)}
             >
               {/* En-tête du projet toujours visible */}
-              <Box display="flex" alignItems="center" justifyContent="space-between">
+              <Box 
+                display="flex" 
+                alignItems="center" 
+                justifyContent="space-between"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleProjectExpansion(project.id);
+                }}
+                sx={{ cursor: 'pointer' }}
+              >
                 <Box display="flex" alignItems="center" gap={2}>
                   <Typography variant="h6">{project.name}</Typography>
                   <Chip
@@ -317,7 +322,7 @@ const Projects = () => {
 
               {/* Contenu détaillé du projet */}
               <Collapse in={isProjectExpanded(project.id)}>
-                <Box mt={2}>
+                <Box mt={2} onClick={(e) => e.stopPropagation()}>
                   <Box mb={2}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Échéance: {new Date(project.deadline).toLocaleDateString()}
