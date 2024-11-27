@@ -32,7 +32,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ProjectTimer from '../components/time/ProjectTimer/ProjectTimer';
 import ProjectList from '../components/projects/ProjectList';
 import TimeEntriesList from '../components/time/TimeEntries/TimeEntriesList';
-import { canWrite } from '../utils/roleUtils';
+import { canWrite, canManageProjects } from '../utils/roleUtils';
 
 interface Project {
   id: string;
@@ -214,12 +214,30 @@ const Projects = () => {
           <Grid item xs={12} key={project.id}>
             <Paper sx={{ p: 2 }}>
               <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                <Typography variant="h6">{project.name}</Typography>
-                <ProjectTimer 
-                  projectId={project.id} 
-                  projectName={project.name}
-                  onTimeUpdate={fetchProjects}
-                />
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Typography variant="h6">{project.name}</Typography>
+                  <Chip
+                    label={project.status}
+                    color={project.status === 'active' ? 'success' : project.status === 'completed' ? 'primary' : 'default'}
+                  />
+                </Box>
+                <Box display="flex" alignItems="center" gap={1}>
+                  {canManageProjects(userRole) && (
+                    <>
+                      <IconButton onClick={() => handleEdit(project)} color="primary">
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton onClick={() => handleDelete(project.id)} color="error">
+                        <DeleteIcon />
+                      </IconButton>
+                    </>
+                  )}
+                  <ProjectTimer 
+                    projectId={project.id} 
+                    projectName={project.name}
+                    onTimeUpdate={fetchProjects}
+                  />
+                </Box>
               </Box>
               <TimeEntriesList projectId={project.id} />
             </Paper>

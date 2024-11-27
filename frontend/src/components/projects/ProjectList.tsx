@@ -14,7 +14,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import TimerIcon from '@mui/icons-material/Timer';
 import EditIcon from '@mui/icons-material/Edit';
 import { useAuth } from '../../contexts/AuthContext';
-import { canWrite } from '../../utils/roleUtils';
+import { canWrite, canManageProjects } from '../../utils/roleUtils';
 
 // Types temporaires
 interface Project {
@@ -142,7 +142,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onTimeUpdate }) => {
                 >
                   <TimerIcon />
                 </IconButton>
-                {canWrite(userRole) && (
+                {canManageProjects(userRole) && (
                   <>
                     <IconButton
                       edge="end"
