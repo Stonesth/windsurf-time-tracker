@@ -19,6 +19,7 @@ import {
   Chip,
   Paper,
   InputAdornment,
+  Collapse
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -62,6 +63,8 @@ const Projects = () => {
     deadline: '',
   });
   const [formError, setFormError] = useState<string>('');
+  const [expandedProjects, setExpandedProjects] = useState<string[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
 
   const fetchProjects = async () => {
     if (!currentUser) return;
@@ -194,72 +197,145 @@ const Projects = () => {
     handleDeleteProject(projectId);
   };
 
+  const formatTime = (time: number) => {
+    const hours = Math.floor(time / 3600);
+    const minutes = Math.floor((time % 3600) / 60);
+    const seconds = time % 60;
+    return `${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+  };
+
+  const toggleProjectExpansion = (projectId: string) => {
+    setExpandedProjects(prev => 
+      prev.includes(projectId) 
+        ? prev.filter(id => id !== projectId)
+        : [...prev, projectId]
+    );
+  };
+
+  const isProjectExpanded = (projectId: string) => expandedProjects.includes(projectId);
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Typography variant="h4" component="h1">
           Projets
         </Typography>
-        {canWrite(userRole) && (
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
+        <Box display="flex" gap={2}>
+          <IconButton 
+            onClick={() => setShowSearch(!showSearch)}
+            color={showSearch ? "primary" : "default"}
           >
-            Nouveau Projet
-          </Button>
-        )}
+            <SearchIcon />
+          </IconButton>
+          {canWrite(userRole) && (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+            >
+              Nouveau Projet
+            </Button>
+          )}
+        </Box>
       </Box>
 
-      <Box mb={3}>
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Rechercher un projet..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Box>
+      <Collapse in={showSearch}>
+        <Box mb={3}>
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Rechercher un projet..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
+      </Collapse>
 
       <Grid container spacing={3}>
         {filteredProjects.map((project) => (
           <Grid item xs={12} key={project.id}>
-            <Paper sx={{ p: 2 }}>
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+            <Paper 
+              sx={{ 
+                p: 2,
+                cursor: 'pointer',
+                '&:hover': {
+                  bgcolor: 'action.hover'
+                }
+              }}
+              onClick={() => toggleProjectExpansion(project.id)}
+            >
+              {/* En-tête du projet toujours visible */}
+              <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box display="flex" alignItems="center" gap={2}>
                   <Typography variant="h6">{project.name}</Typography>
                   <Chip
                     label={project.status}
+                    size="small"
                     color={project.status === 'active' ? 'success' : project.status === 'completed' ? 'primary' : 'default'}
                   />
                 </Box>
                 <Box display="flex" alignItems="center" gap={1}>
-                  {canManageProjects(userRole) && (
-                    <>
-                      <IconButton onClick={() => handleEdit(project)} color="primary">
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton onClick={() => handleDelete(project.id)} color="error">
-                        <DeleteIcon />
-                      </IconButton>
-                    </>
-                  )}
                   <ProjectTimer 
                     projectId={project.id} 
                     projectName={project.name}
                     onTimeUpdate={fetchProjects}
                   />
+                  {canManageProjects(userRole) && (
+                    <>
+                      <IconButton 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(project);
+                        }} 
+                        color="primary" 
+                        size="small"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(project.id);
+                        }} 
+                        color="error" 
+                        size="small"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </>
+                  )}
                 </Box>
               </Box>
-              <TimeEntriesList projectId={project.id} />
+
+              {/* Contenu détaillé du projet */}
+              <Collapse in={isProjectExpanded(project.id)}>
+                <Box mt={2}>
+                  <Box mb={2}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Échéance: {new Date(project.deadline).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {project.description}
+                    </Typography>
+                  </Box>
+
+                  <Box mb={2}>
+                    <Typography variant="body2" color="text.secondary">
+                      Temps total: {formatTime(project.totalTime || 0)}
+                    </Typography>
+                  </Box>
+
+                  <TimeEntriesList projectId={project.id} />
+                </Box>
+              </Collapse>
             </Paper>
           </Grid>
         ))}
