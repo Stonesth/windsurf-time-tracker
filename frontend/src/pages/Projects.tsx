@@ -61,6 +61,7 @@ const Projects = () => {
     status: 'active',
     deadline: '',
   });
+  const [formError, setFormError] = useState<string>('');
 
   const fetchProjects = async () => {
     if (!currentUser) return;
@@ -102,6 +103,12 @@ const Projects = () => {
     setFilteredProjects(filtered);
   }, [searchQuery, projects]);
 
+  const isProjectNameUnique = (name: string, currentProjectId?: string): boolean => {
+    return !projects.some(project => 
+      project.name.toLowerCase() === name.toLowerCase() && project.id !== currentProjectId
+    );
+  };
+
   const handleOpenDialog = (project?: Project) => {
     if (project) {
       setEditingProject(project);
@@ -130,6 +137,19 @@ const Projects = () => {
 
   const handleSubmit = async () => {
     if (!currentUser) return;
+    setFormError('');
+
+    // Vérifier si le nom est vide
+    if (!formData.name.trim()) {
+      setFormError('Le nom du projet est requis');
+      return;
+    }
+
+    // Vérifier si le nom est unique
+    if (!isProjectNameUnique(formData.name, editingProject?.id)) {
+      setFormError('Un projet avec ce nom existe déjà');
+      return;
+    }
 
     try {
       if (editingProject) {
@@ -255,8 +275,13 @@ const Projects = () => {
               fullWidth
               label="Nom du projet"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, name: e.target.value });
+                setFormError('');
+              }}
               margin="normal"
+              error={!!formError}
+              helperText={formError}
             />
             <TextField
               fullWidth
