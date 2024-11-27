@@ -13,17 +13,44 @@ import {
 } from '@mui/material';
 import { getAuth, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useAuth } from '../../contexts/AuthContext';
+import { UserRole } from '../../types/user';
 
 const Profile = () => {
   const auth = getAuth();
   const user = auth.currentUser;
   const storage = getStorage();
+  const { userRole } = useAuth();
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
   const [email, setEmail] = useState(user?.email || '');
   const [isEditing, setIsEditing] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+
+  const getRoleLabel = (role: UserRole) => {
+    switch (role) {
+      case UserRole.ADMIN:
+        return 'Administrateur';
+      case UserRole.PROJECT_LEADER:
+        return 'Chef de projet';
+      case UserRole.USER:
+        return 'Utilisateur';
+      case UserRole.READ:
+        return 'Lecture seule';
+      default:
+        return 'Non défini';
+    }
+  };
+
+  useEffect(() => {
+    // Mise à jour des états quand l'utilisateur change
+    if (user) {
+      setDisplayName(user.displayName || '');
+      setPhotoURL(user.photoURL || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files?.[0]) return;
@@ -139,6 +166,16 @@ const Profile = () => {
               fullWidth
               label="Email"
               value={email}
+              disabled
+              margin="normal"
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Rôle"
+              value={getRoleLabel(userRole)}
               disabled
               margin="normal"
             />

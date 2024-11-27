@@ -20,6 +20,7 @@ import {
 import { doc, updateDoc, collection, addDoc, Timestamp, increment } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
+import { canWrite } from '../../../utils/roleUtils';
 
 interface TimeEntry {
   startTime: Date;
@@ -44,7 +45,7 @@ const formatTime = (seconds: number): string => {
 };
 
 const ProjectTimer: React.FC<ProjectTimerProps> = ({ projectId, projectName, onTimeUpdate }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, userRole } = useAuth();
   const [isRunning, setIsRunning] = useState(false);
   const [time, setTime] = useState(0);
   const [startTime, setStartTime] = useState<Date | null>(null);
@@ -164,7 +165,7 @@ const ProjectTimer: React.FC<ProjectTimerProps> = ({ projectId, projectName, onT
               <IconButton 
                 color="primary" 
                 onClick={handleStart}
-                disabled={isSaving}
+                disabled={!canWrite(userRole) || isSaving}
               >
                 <PlayIcon />
               </IconButton>
@@ -172,7 +173,7 @@ const ProjectTimer: React.FC<ProjectTimerProps> = ({ projectId, projectName, onT
               <IconButton 
                 color="primary" 
                 onClick={handlePause}
-                disabled={isSaving}
+                disabled={!canWrite(userRole) || isSaving}
               >
                 <PauseIcon />
               </IconButton>
@@ -183,14 +184,14 @@ const ProjectTimer: React.FC<ProjectTimerProps> = ({ projectId, projectName, onT
                 <IconButton 
                   color="error" 
                   onClick={handleStop}
-                  disabled={isSaving}
+                  disabled={!canWrite(userRole) || isSaving}
                 >
                   <StopIcon />
                 </IconButton>
                 <IconButton 
                   color="primary" 
                   onClick={() => setOpenNotesDialog(true)}
-                  disabled={isSaving}
+                  disabled={!canWrite(userRole) || isSaving}
                 >
                   <NotesIcon />
                 </IconButton>

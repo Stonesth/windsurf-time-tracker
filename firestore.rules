@@ -19,13 +19,27 @@ service cloud.firestore {
       return request.auth.token.email == 'pierre.thonon@gmail.com';
     }
 
+    // Fonction helper pour vérifier si l'utilisateur a un rôle qui permet l'écriture
+    function canWrite() {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return userData.role == 'ADMIN' || 
+             userData.role == 'PROJECT_LEADER' || 
+             userData.role == 'USER';
+    }
+
     // Règles pour la collection users
     match /users/{userId} {
       // Permettre la lecture pour vérifier l'admin initial
       allow read: if true;
       
-      // Permettre la création pour l'admin initial ou les admins existants
-      allow create: if isAuthenticated() && (isInitialAdminEmail() || isAdmin());
+      // Permettre la création si :
+      // 1. L'utilisateur est authentifié ET
+      // 2. Le document qu'il crée correspond à son propre UID OU il est admin
+      allow create: if isAuthenticated() && (
+        userId == request.auth.uid || 
+        isInitialAdminEmail() || 
+        isAdmin()
+      );
       
       // Permettre la modification/suppression aux admins uniquement
       allow update, delete: if isAdmin();
@@ -34,10 +48,11 @@ service cloud.firestore {
     // Règles pour la collection timeEntries
     match /timeEntries/{entryId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      // Seuls les utilisateurs avec des rôles non-READ peuvent créer des entrées
+      allow create: if isAuthenticated() && canWrite();
       allow update, delete: if isAuthenticated() && (
         isAdmin() ||
-        resource.data.userId == request.auth.uid
+        (canWrite() && resource.data.userId == request.auth.uid)
       );
     }
 
@@ -46,29 +61,19 @@ service cloud.firestore {
       // Autoriser la lecture si l'utilisateur est authentifié
       allow read: if isAuthenticated();
       
-      // Autoriser la création si l'utilisateur est authentifié
-      allow create: if isAuthenticated();
+      // Seuls les utilisateurs avec des rôles non-READ peuvent créer des projets
+      allow create: if isAuthenticated() && canWrite();
       
-      // Autoriser la mise à jour si l'utilisateur est admin ou membre du projet
-      allow update: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.members[request.auth.uid] != null ||
-        resource.data.createdBy == request.auth.uid
-      );
-      
-      // Autoriser la suppression si l'utilisateur est admin ou créateur
-      allow delete: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.createdBy == request.auth.uid
-      );
+      // Seuls les admins peuvent modifier/supprimer des projets
+      allow update, delete: if isAdmin();
 
       // Règles pour la sous-collection timeEntries dans les projets
       match /timeEntries/{entryId} {
         allow read: if isAuthenticated();
-        allow create: if isAuthenticated();
+        allow create: if isAuthenticated() && canWrite();
         allow update, delete: if isAuthenticated() && (
           isAdmin() ||
-          resource.data.userId == request.auth.uid
+          (canWrite() && resource.data.userId == request.auth.uid)
         );
       }
     }

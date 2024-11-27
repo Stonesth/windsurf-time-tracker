@@ -17,6 +17,7 @@ import PauseIcon from '@mui/icons-material/Pause';
 import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { canWrite } from '../../utils/roleUtils';
 
 interface Project {
   id: string;
@@ -28,7 +29,7 @@ interface TimeTrackerProps {
 }
 
 export const TimeTracker: React.FC<TimeTrackerProps> = ({ onTimeUpdate }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, userRole } = useAuth();
   const [isTracking, setIsTracking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [selectedProject, setSelectedProject] = useState('');
@@ -154,7 +155,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ onTimeUpdate }) => {
               value={selectedProject}
               label="Projet"
               onChange={(e) => setSelectedProject(e.target.value)}
-              disabled={isTracking}
+              disabled={isTracking || !canWrite(userRole)}
             >
               {projects.map((project) => (
                 <MenuItem key={project.id} value={project.id}>
@@ -171,7 +172,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ onTimeUpdate }) => {
             label="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            disabled={isTracking}
+            disabled={isTracking || !canWrite(userRole)}
           />
         </Grid>
 
@@ -189,7 +190,7 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ onTimeUpdate }) => {
                 color="primary"
                 startIcon={<PlayArrowIcon />}
                 onClick={handleStart}
-                disabled={!selectedProject}
+                disabled={!selectedProject || !canWrite(userRole)}
               >
                 Démarrer
               </Button>
@@ -199,28 +200,28 @@ export const TimeTracker: React.FC<TimeTrackerProps> = ({ onTimeUpdate }) => {
                   <Button
                     variant="contained"
                     color="primary"
-                    startIcon={<PauseIcon />}
                     onClick={handlePause}
+                    disabled={!canWrite(userRole)}
                   >
-                    Pause
+                    <PauseIcon />
                   </Button>
                 ) : (
                   <Button
                     variant="contained"
                     color="primary"
-                    startIcon={<PlayArrowIcon />}
                     onClick={handleResume}
+                    disabled={!canWrite(userRole)}
                   >
-                    Reprendre
+                    <PlayArrowIcon />
                   </Button>
                 )}
                 <Button
                   variant="contained"
-                  color="error"
-                  startIcon={<StopIcon />}
+                  color="secondary"
                   onClick={handleStop}
+                  disabled={!canWrite(userRole)}
                 >
-                  Arrêter
+                  <StopIcon />
                 </Button>
               </>
             )}

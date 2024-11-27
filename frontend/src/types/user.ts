@@ -9,9 +9,11 @@ export interface User {
   uid: string;
   email: string;
   displayName?: string;
+  firstName?: string;
+  lastName?: string;
   role: UserRole;
-  createdAt: Date;
-  lastLogin?: Date;
+  createdAt: string;
+  lastLogin?: string;
 }
 
 export interface UserWithStatus extends User {

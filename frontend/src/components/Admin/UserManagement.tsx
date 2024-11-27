@@ -44,9 +44,12 @@ export const UserManagement: React.FC = () => {
 
   const loadUsers = async () => {
     try {
+      console.log('Chargement des utilisateurs...');
       const loadedUsers = await userService.getAllUsers();
+      console.log('Utilisateurs chargés:', loadedUsers);
       setUsers(loadedUsers);
     } catch (error) {
+      console.error('Erreur lors du chargement des utilisateurs:', error);
       setError('Erreur lors du chargement des utilisateurs');
     }
   };
@@ -81,11 +84,14 @@ export const UserManagement: React.FC = () => {
       if (editingUser) {
         await userService.updateUserRole(editingUser.uid, formData.role);
       } else {
-        await userService.createUser(formData.email, formData.password, formData.role);
+        const newUser = await userService.createUser(formData.email, formData.password, formData.role);
+        console.log('Nouvel utilisateur créé:', newUser);
       }
       handleCloseDialog();
-      loadUsers();
+      // Forcer un rafraîchissement immédiat
+      await loadUsers();
     } catch (error: any) {
+      console.error('Erreur lors de la soumission:', error);
       setError(error.message || 'Une erreur est survenue');
     }
   };
@@ -120,26 +126,47 @@ export const UserManagement: React.FC = () => {
             <TableRow>
               <TableCell>Email</TableCell>
               <TableCell>Rôle</TableCell>
-              <TableCell>Description du Rôle</TableCell>
+              <TableCell>Nom</TableCell>
+              <TableCell>Prénom</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.uid}>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{user.role}</TableCell>
-                <TableCell>{RolePermissions[user.role as UserRole]?.description || 'Rôle non défini'}</TableCell>
-                <TableCell>
-                  <IconButton onClick={() => handleOpenDialog(user)} disabled={user.isLastAdmin}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton onClick={() => handleDelete(user)} disabled={user.isLastAdmin}>
-                    <DeleteIcon />
-                  </IconButton>
+            {users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} align="center">
+                  Aucun utilisateur trouvé
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              users.map((user) => {
+                console.log('Rendu utilisateur:', user);
+                return (
+                  <TableRow key={user.uid}>
+                    <TableCell>{user.email || 'N/A'}</TableCell>
+                    <TableCell>{user.role || 'N/A'}</TableCell>
+                    <TableCell>{user.lastName || 'N/A'}</TableCell>
+                    <TableCell>{user.firstName || 'N/A'}</TableCell>
+                    <TableCell>
+                      <IconButton 
+                        onClick={() => handleOpenDialog(user)} 
+                        disabled={user.isLastAdmin}
+                        title="Modifier"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton 
+                        onClick={() => handleDelete(user)} 
+                        disabled={user.isLastAdmin}
+                        title="Supprimer"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </TableContainer>

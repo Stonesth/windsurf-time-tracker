@@ -13,6 +13,8 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import TimerIcon from '@mui/icons-material/Timer';
 import EditIcon from '@mui/icons-material/Edit';
+import { useAuth } from '../../contexts/AuthContext';
+import { canWrite } from '../../utils/roleUtils';
 
 // Types temporaires
 interface Project {
@@ -28,6 +30,8 @@ interface ProjectListProps {
 }
 
 export const ProjectList: React.FC<ProjectListProps> = ({ onTimeUpdate }) => {
+  const { userRole } = useAuth();
+
   // Données temporaires
   const projects: Project[] = [
     {
@@ -134,24 +138,29 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onTimeUpdate }) => {
                   aria-label="start timer"
                   onClick={() => handleStartTimer(project.id)}
                   sx={{ mr: 1 }}
+                  disabled={!canWrite(userRole)}
                 >
                   <TimerIcon />
                 </IconButton>
-                <IconButton
-                  edge="end"
-                  aria-label="edit"
-                  onClick={() => handleEditProject(project.id)}
-                  sx={{ mr: 1 }}
-                >
-                  <EditIcon />
-                </IconButton>
-                <IconButton
-                  edge="end"
-                  aria-label="delete"
-                  onClick={() => handleDeleteProject(project.id)}
-                >
-                  <DeleteIcon />
-                </IconButton>
+                {canWrite(userRole) && (
+                  <>
+                    <IconButton
+                      edge="end"
+                      aria-label="edit"
+                      onClick={() => handleEditProject(project.id)}
+                      sx={{ mr: 1 }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
+                      aria-label="delete"
+                      onClick={() => handleDeleteProject(project.id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </>
+                )}
               </ListItemSecondaryAction>
             </ListItem>
           </React.Fragment>

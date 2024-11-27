@@ -28,29 +28,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentUser(user);
       
       if (user && user.email) {
-        // Vérifier si c'est l'admin initial
-        if (user.email === 'pierre.thonon@gmail.com') {
-          setUserRole(UserRole.ADMIN);
-          // Créer l'utilisateur admin s'il n'existe pas déjà
-          try {
-            const users = await userService.getAllUsers();
-            if (!users.some(u => u.email === user.email)) {
-              await userService.createUser(user.email, '', UserRole.ADMIN);
+        try {
+          // Récupérer tous les utilisateurs
+          const users = await userService.getAllUsers();
+          let currentUserData = users.find(u => u.uid === user.uid);
+
+          // Vérifier si c'est l'admin initial
+          if (user.email === 'pierre.thonon@gmail.com') {
+            setUserRole(UserRole.ADMIN);
+            // Créer l'utilisateur admin s'il n'existe pas déjà
+            if (!currentUserData) {
+              await userService.createUserInFirestore(user.uid, user.email, UserRole.ADMIN);
+              // Mettre à jour currentUserData
+              currentUserData = (await userService.getAllUsers()).find(u => u.uid === user.uid);
             }
             // Assurer que l'utilisateur de test existe
             await userService.ensureTestUserExists();
-          } catch (error) {
-            console.error('Erreur lors de la vérification/création des utilisateurs:', error);
+          } else {
+            // Pour les autres utilisateurs
+            if (!currentUserData) {
+              // Si l'utilisateur n'existe pas dans Firestore, le créer avec le rôle USER par défaut
+              console.log('Création d\'un nouvel utilisateur dans Firestore:', user.email);
+              await userService.createUserInFirestore(user.uid, user.email, UserRole.USER);
+              // Mettre à jour currentUserData
+              currentUserData = (await userService.getAllUsers()).find(u => u.uid === user.uid);
+            }
           }
-        } else {
-          // Récupérer le rôle depuis Firestore
-          try {
-            const users = await userService.getAllUsers();
-            const currentUserData = users.find(u => u.uid === user.uid);
-            setUserRole(currentUserData?.role || null);
-          } catch (error) {
-            console.error('Error fetching user role:', error);
-          }
+          
+          // Mettre à jour le rôle
+          setUserRole(currentUserData?.role || null);
+        } catch (error) {
+          console.error('Erreur lors de la gestion de l\'utilisateur:', error);
+          setUserRole(null);
         }
       } else {
         setUserRole(null);

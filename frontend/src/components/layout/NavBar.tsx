@@ -86,6 +86,12 @@ const NavBar = () => {
           >
             <MenuItem onClick={() => {
               handleClose();
+              navigate('/profile');
+            }}>
+              Profil
+            </MenuItem>
+            <MenuItem onClick={() => {
+              handleClose();
               handleLogout();
             }}>
               Déconnexion

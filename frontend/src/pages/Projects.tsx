@@ -32,6 +32,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ProjectTimer from '../components/time/ProjectTimer/ProjectTimer';
 import ProjectList from '../components/projects/ProjectList';
 import TimeEntriesList from '../components/time/TimeEntries/TimeEntriesList';
+import { canWrite } from '../utils/roleUtils';
 
 interface Project {
   id: string;
@@ -47,7 +48,7 @@ interface Project {
 }
 
 const Projects = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userRole } = useAuth();
   const location = useLocation();
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
@@ -179,14 +180,16 @@ const Projects = () => {
         <Typography variant="h4" component="h1">
           Projets
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Nouveau Projet
-        </Button>
+        {canWrite(userRole) && (
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            Nouveau Projet
+          </Button>
+        )}
       </Box>
 
       <Box mb={3}>

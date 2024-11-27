@@ -22,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { formatDuration } from '../utils/timeUtils';
 import { apiService } from '../services/apiService';
+import { canWrite } from '../utils/roleUtils';
 
 interface DashboardStats {
   todayTime: number;
@@ -32,7 +33,7 @@ interface DashboardStats {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, userRole } = useAuth();
   const [isLoading, setIsLoading] = React.useState(true);
   const [authStatus, setAuthStatus] = React.useState<string>('');
   const [authError, setAuthError] = React.useState<string>('');
@@ -182,14 +183,16 @@ const Dashboard: React.FC = () => {
               <Typography variant="h4" component="h1" gutterBottom>
                 Tableau de bord
               </Typography>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={handleNewProject}
-              >
-                Nouveau Projet
-              </Button>
+              {canWrite(userRole) && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AddIcon />}
+                  onClick={handleNewProject}
+                >
+                  Nouveau Projet
+                </Button>
+              )}
             </Box>
           </Grid>
 

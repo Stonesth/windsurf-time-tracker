@@ -10,6 +10,7 @@ import LoginForm from './components/Auth/LoginForm';
 import SignUpForm from './components/Auth/SignUpForm';
 import { CircularProgress, Box } from '@mui/material';
 import { AdminPage } from './pages/Admin';
+import Profile from './components/Profile/Profile';
 
 // Composant pour protéger les routes
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -61,6 +62,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
                   </ProtectedRoute>
                 }
               />
