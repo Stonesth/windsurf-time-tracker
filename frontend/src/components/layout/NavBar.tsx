@@ -17,11 +17,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/authService';
 import { UserRole } from '../../types/user';
+import TotalTimeDisplay from '../timer/TotalTimeDisplay';
 
 const NavBar = () => {
   const navigate = useNavigate();
   const { currentUser, userRole } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const isAdmin = userRole === UserRole.ADMIN;
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -33,8 +35,7 @@ const NavBar = () => {
 
   const handleLogout = async () => {
     try {
-      await authService.logout();
-      handleClose();
+      await authService.signOut();
       navigate('/login');
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
@@ -43,16 +44,29 @@ const NavBar = () => {
 
   if (!currentUser) return null;
 
-  console.log('User Role from Context:', userRole);
-  const isAdmin = userRole === UserRole.ADMIN;
-
   return (
-    <AppBar position="static">
-      <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          Time Tracker
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+    <Box sx={{ flexGrow: 1 }}>
+      <AppBar 
+        position="fixed" 
+        sx={{ 
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)'
+        }}
+      >
+        <Toolbar>
+          <Typography
+            variant="h6"
+            component={Link}
+            to="/"
+            sx={{
+              textDecoration: 'none',
+              color: 'inherit',
+              flexGrow: 0,
+              marginRight: 4
+            }}
+          >
+            Time Tracker
+          </Typography>
           <Button
             color="inherit"
             component={Link}
@@ -67,31 +81,36 @@ const NavBar = () => {
           <Button color="inherit" component={Link} to="/daily">
             Tâches du Jour
           </Button>
-          {isAdmin && (
-            <Button 
-              color="inherit" 
-              component={Link} 
-              to="/admin"
-              sx={{ 
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                }
-              }}
-            >
-              Administration
-            </Button>
+          {currentUser && (
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 3, marginLeft: 'auto' }}>
+              <TotalTimeDisplay variant="navbar" />
+              {isAdmin && (
+                <Button
+                  color="inherit"
+                  component={Link}
+                  to="/admin"
+                  sx={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    }
+                  }}
+                >
+                  Administration
+                </Button>
+              )}
+              <IconButton
+                size="large"
+                aria-label="account of current user"
+                aria-controls="menu-appbar"
+                aria-haspopup="true"
+                onClick={handleMenu}
+                color="inherit"
+              >
+                <AccountCircle />
+              </IconButton>
+            </Box>
           )}
-          <IconButton
-            size="large"
-            aria-label="account of current user"
-            aria-controls="menu-appbar"
-            aria-haspopup="true"
-            onClick={handleMenu}
-            color="inherit"
-          >
-            <AccountCircle />
-          </IconButton>
           <Menu
             id="menu-appbar"
             anchorEl={anchorEl}
@@ -112,9 +131,10 @@ const NavBar = () => {
             </MenuItem>
             <MenuItem onClick={handleLogout}>Se déconnecter</MenuItem>
           </Menu>
-        </Box>
-      </Toolbar>
-    </AppBar>
+        </Toolbar>
+      </AppBar>
+      <Toolbar /> {/* Spacer pour éviter que le contenu ne soit caché derrière la navbar */}
+    </Box>
   );
 };
 

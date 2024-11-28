@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -20,26 +20,29 @@ import {
   ListItemIcon,
   ListItemText,
   MenuItem as MenuItemMui,
+  Collapse
 } from '@mui/material';
 import { 
   Add as AddIcon, 
   PlayArrow, 
-  Stop, 
-  Timer as TimerIcon,
+  Stop,
+  Timer,
   MoreVert as MoreVertIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Home as HomeIcon,
+  KeyboardArrowDown
 } from '@mui/icons-material';
 import { collection, query, where, getDocs, Timestamp, orderBy, limit, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectsContext';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
 import fr from 'date-fns/locale/fr';
+import TotalTimeDisplay from '../components/timer/TotalTimeDisplay';
 
 interface TimeEntry {
   id: string;
@@ -59,6 +62,20 @@ interface NewTaskData {
   tags: string;
 }
 
+interface GroupedTimeEntry {
+  projectId: string;
+  task: string;
+  entries: TimeEntry[];
+  totalDuration: number;
+  isRunning: boolean;
+}
+
+interface EditTimeEntryData {
+  startTime: Date;
+  endTime: Date | null;
+  task: string;
+}
+
 const DailyTasks = () => {
   const { currentUser } = useAuth();
   const { projects } = useProjects();
@@ -74,10 +91,39 @@ const DailyTasks = () => {
     task: '',
     tags: '',
   });
-  const [totalTime, setTotalTime] = useState(0);
-
-  // Timer state
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [timers, setTimers] = useState<{ [key: string]: number }>({});
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [editTimeEntryId, setEditTimeEntryId] = useState<string | null>(null);
+  const [editTimeEntryData, setEditTimeEntryData] = useState<EditTimeEntryData>({
+    startTime: new Date(),
+    endTime: null,
+    task: ''
+  });
+  const [openEditTimeEntryDialog, setOpenEditTimeEntryDialog] = useState(false);
+
+  const formatDuration = (seconds: number) => {
+    if (seconds === 0) return '0s';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (remainingSeconds > 0) parts.push(`${remainingSeconds}s`);
+    
+    return parts.join(' ');
+  };
+
+  const formatTimeToLocale = (date: Date) => {
+    return date.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
 
   const handleDateChange = (date: Date | null) => {
     if (date) {
@@ -85,43 +131,21 @@ const DailyTasks = () => {
     }
   };
 
-  const goToPreviousDay = () => {
+  const handlePreviousDay = () => {
     const newDate = new Date(selectedDate);
     newDate.setDate(newDate.getDate() - 1);
     setSelectedDate(newDate);
   };
 
-  const goToNextDay = () => {
+  const handleNextDay = () => {
     const newDate = new Date(selectedDate);
     newDate.setDate(newDate.getDate() + 1);
     setSelectedDate(newDate);
   };
 
-  const goToToday = () => {
+  const handleToday = () => {
     setSelectedDate(new Date());
   };
-
-  useEffect(() => {
-    const intervals: { [key: string]: NodeJS.Timeout } = {};
-
-    // Update timers every second for running tasks
-    todaysTasks.forEach(task => {
-      if (task.isRunning) {
-        const startTime = task.startTime.getTime();
-        const initialDuration = task.duration || 0;
-        
-        intervals[task.id] = setInterval(() => {
-          const now = new Date().getTime();
-          const elapsed = Math.floor((now - startTime) / 1000) + initialDuration;
-          setTimers(prev => ({ ...prev, [task.id]: elapsed }));
-        }, 1000);
-      }
-    });
-
-    return () => {
-      Object.values(intervals).forEach(interval => clearInterval(interval));
-    };
-  }, [todaysTasks]);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -134,14 +158,10 @@ const DailyTasks = () => {
         const startOfDay = new Date(selectedDate);
         startOfDay.setHours(0, 0, 0, 0);
 
-        const endOfDay = new Date(selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
-
         const timeEntriesQuery = query(
           collection(db, 'timeEntries'),
           where('userId', '==', currentUser.uid),
           where('startTime', '>=', Timestamp.fromDate(startOfDay)),
-          where('startTime', '<=', Timestamp.fromDate(endOfDay)),
           orderBy('startTime', 'desc'),
           limit(50)
         );
@@ -154,7 +174,16 @@ const DailyTasks = () => {
           endTime: doc.data().endTime?.toDate() || null,
         })) as TimeEntry[];
 
-        setTodaysTasks(tasks);
+        // Filtrer les tâches pour n'avoir que celles du jour sélectionné
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const filteredTasks = tasks.filter(task => {
+          const taskDate = task.startTime;
+          return taskDate >= startOfDay && taskDate <= endOfDay;
+        });
+
+        setTodaysTasks(filteredTasks);
       } catch (error) {
         console.error('Erreur lors de la récupération des tâches:', error);
         setError('Impossible de charger les tâches. Veuillez réessayer plus tard.');
@@ -167,11 +196,35 @@ const DailyTasks = () => {
   }, [currentUser, selectedDate]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTotalTime(calculateTotalTime());
-    }, 1000);
+    const intervals: { [key: string]: NodeJS.Timeout } = {};
 
-    return () => clearInterval(interval);
+    todaysTasks.forEach(task => {
+      if (task.isRunning) {
+        const startTime = task.startTime.getTime();
+        const initialDuration = task.duration || 0;
+        
+        setTimers(prev => ({
+          ...prev,
+          [task.id]: Math.floor((Date.now() - startTime) / 1000) + initialDuration
+        }));
+
+        intervals[task.id] = setInterval(() => {
+          setTimers(prev => ({
+            ...prev,
+            [task.id]: Math.floor((Date.now() - startTime) / 1000) + initialDuration
+          }));
+        }, 1000);
+      } else {
+        setTimers(prev => ({
+          ...prev,
+          [task.id]: task.duration || 0
+        }));
+      }
+    });
+
+    return () => {
+      Object.values(intervals).forEach(interval => clearInterval(interval));
+    };
   }, [todaysTasks]);
 
   const handleStartTimer = async (taskId: string) => {
@@ -179,13 +232,15 @@ const DailyTasks = () => {
       const task = todaysTasks.find(t => t.id === taskId);
       if (!task) return;
 
-      // Arrêter la tâche en cours s'il y en a une
-      const runningTask = todaysTasks.find(t => t.isRunning);
-      if (runningTask) {
+      // Arrêter toutes les autres tâches en cours
+      const runningTasks = todaysTasks.filter(t => t.isRunning);
+      for (const runningTask of runningTasks) {
         await handleStopTimer(runningTask.id);
       }
 
       const now = new Date();
+
+      // Créer une nouvelle entrée de temps
       const newTimeEntry = {
         projectId: task.projectId,
         userId: currentUser?.uid,
@@ -207,6 +262,12 @@ const DailyTasks = () => {
       } as TimeEntry;
 
       setTodaysTasks(prev => [newTask, ...prev]);
+
+      setTimers(prev => ({
+        ...prev,
+        [docRef.id]: 0
+      }));
+
     } catch (error) {
       console.error('Erreur lors du démarrage du chronomètre:', error);
       setError('Impossible de démarrer le chronomètre');
@@ -219,56 +280,36 @@ const DailyTasks = () => {
       if (!task) return;
 
       const now = new Date();
-      const duration = timers[taskId] || task.duration || 0;
+      const elapsedTime = Math.floor((now.getTime() - task.startTime.getTime()) / 1000);
+      const newDuration = (task.duration || 0) + elapsedTime;
 
-      await updateDoc(doc(db, 'timeEntries', taskId), {
+      const taskRef = doc(db, 'timeEntries', taskId);
+      await updateDoc(taskRef, {
         endTime: Timestamp.fromDate(now),
         isRunning: false,
-        duration
+        duration: newDuration
       });
 
-      setTodaysTasks(prev => prev.map(t => 
-        t.id === taskId 
-          ? { ...t, endTime: now, isRunning: false, duration }
-          : t
-      ));
+      const updatedTask = {
+        ...task,
+        endTime: now,
+        isRunning: false,
+        duration: newDuration
+      };
+
+      setTodaysTasks(prev =>
+        prev.map(t => (t.id === taskId ? updatedTask : t))
+      );
+
+      setTimers(prev => ({
+        ...prev,
+        [taskId]: newDuration
+      }));
+
     } catch (error) {
       console.error('Erreur lors de l\'arrêt du chronomètre:', error);
       setError('Impossible d\'arrêter le chronomètre');
     }
-  };
-
-  const formatDuration = (seconds: number) => {
-    if (seconds === 0) return '0s';
-    
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-    
-    const parts = [];
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-    if (remainingSeconds > 0) parts.push(`${remainingSeconds}s`);
-    
-    return parts.join(' ');
-  };
-
-  const formatTotalTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-    
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  const calculateTotalTime = () => {
-    return todaysTasks.reduce((total, task) => {
-      if (task.isRunning) {
-        const currentDuration = Math.floor((Date.now() - task.startTime.getTime()) / 1000);
-        return total + currentDuration;
-      }
-      return total + (task.duration || 0);
-    }, 0);
   };
 
   const handleNewTask = async () => {
@@ -402,6 +443,97 @@ const DailyTasks = () => {
     handleMenuClose();
   };
 
+  const handleEditTimeEntry = (entry: TimeEntry) => {
+    setEditTimeEntryId(entry.id);
+    setEditTimeEntryData({
+      startTime: entry.startTime,
+      endTime: entry.endTime,
+      task: entry.task || ''
+    });
+    setOpenEditTimeEntryDialog(true);
+  };
+
+  const handleEditTimeEntrySubmit = async () => {
+    if (!editTimeEntryId) return;
+
+    try {
+      const docRef = doc(db, 'timeEntries', editTimeEntryId);
+      const duration = editTimeEntryData.endTime 
+        ? Math.floor((editTimeEntryData.endTime.getTime() - editTimeEntryData.startTime.getTime()) / 1000)
+        : 0;
+
+      await updateDoc(docRef, {
+        startTime: Timestamp.fromDate(editTimeEntryData.startTime),
+        endTime: editTimeEntryData.endTime ? Timestamp.fromDate(editTimeEntryData.endTime) : null,
+        duration: duration,
+        task: editTimeEntryData.task
+      });
+
+      // Mettre à jour l'état local
+      setTodaysTasks(prev => prev.map(task => {
+        if (task.id === editTimeEntryId) {
+          return {
+            ...task,
+            startTime: editTimeEntryData.startTime,
+            endTime: editTimeEntryData.endTime,
+            duration: duration,
+            task: editTimeEntryData.task
+          };
+        }
+        return task;
+      }));
+
+      setOpenEditTimeEntryDialog(false);
+    } catch (error) {
+      console.error('Erreur lors de la modification de l\'entrée:', error);
+      setError('Impossible de modifier l\'entrée');
+    }
+  };
+
+  const groupTasks = (tasks: TimeEntry[]): GroupedTimeEntry[] => {
+    const groupedMap = tasks.reduce((acc, task) => {
+      const key = `${task.projectId}-${task.task}`;
+      if (!acc.has(key)) {
+        acc.set(key, {
+          projectId: task.projectId,
+          task: task.task || '',
+          entries: [],
+          totalDuration: 0,
+          isRunning: false
+        });
+      }
+      const group = acc.get(key)!;
+      group.entries.push(task);
+      group.isRunning = group.isRunning || task.isRunning || false;
+      
+      // Calculer la durée totale
+      if (task.isRunning) {
+        const currentDuration = Math.floor((Date.now() - task.startTime.getTime()) / 1000);
+        group.totalDuration += currentDuration;
+      } else {
+        group.totalDuration += task.duration || 0;
+      }
+      
+      return acc;
+    }, new Map<string, GroupedTimeEntry>());
+
+    return Array.from(groupedMap.values());
+  };
+
+  const groupedTasks = useMemo(() => groupTasks(todaysTasks), [todaysTasks, timers]);
+
+  const toggleGroupExpansion = (groupKey: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupKey)) {
+        newSet.delete(groupKey);
+      } else {
+        newSet.add(groupKey);
+      }
+      return newSet;
+    });
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" p={3}>
@@ -419,230 +551,241 @@ const DailyTasks = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4" component="h1">
-          Tâches du Jour
-        </Typography>
-        <Box display="flex" alignItems="center" gap={2}>
-          <Box 
-            sx={{ 
-              backgroundColor: 'primary.main',
-              color: 'white',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1
-            }}
-          >
-            <TimerIcon fontSize="small" />
-            <Typography variant="h6" component="span">
-              {formatTotalTime(totalTime)}
-            </Typography>
-          </Box>
-          <Box display="flex" alignItems="center" bgcolor="background.paper" borderRadius={1} boxShadow={1}>
-            <IconButton onClick={goToPreviousDay}>
-              <ChevronLeftIcon />
-            </IconButton>
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
-              <DatePicker
-                value={selectedDate}
-                onChange={handleDateChange}
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    sx: { width: 150 }
-                  }
-                }}
-              />
-            </LocalizationProvider>
-            <IconButton onClick={goToNextDay}>
-              <ChevronRightIcon />
-            </IconButton>
-            <Tooltip title="Aujourd'hui">
-              <IconButton 
-                onClick={goToToday}
-                sx={{
-                  '&:hover': {
-                    backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                  },
-                }}
-              >
+    <>
+      <Container 
+        maxWidth="lg" 
+        sx={{ 
+          mt: 3, 
+          mb: 4,
+          minHeight: 'calc(100vh - 64px)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+          <Typography variant="h4" component="h1">
+            Tâches du Jour
+          </Typography>
+          <Box display="flex" alignItems="center" gap={2}>
+            <TotalTimeDisplay />
+            <Box display="flex" alignItems="center" bgcolor="background.paper" borderRadius={1} boxShadow={1}>
+              <IconButton onClick={handlePreviousDay}>
+                <ChevronLeftIcon />
+              </IconButton>
+              <LocalizationProvider dateAdapter={AdapterDateFns} locale={fr}>
+                <DatePicker
+                  value={selectedDate}
+                  onChange={(newValue) => {
+                    if (newValue) {
+                      setSelectedDate(newValue);
+                    }
+                  }}
+                  format="dd/MM/yyyy"
+                />
+              </LocalizationProvider>
+              <IconButton onClick={handleNextDay}>
+                <ChevronRightIcon />
+              </IconButton>
+              <IconButton onClick={() => setSelectedDate(new Date())}>
                 <HomeIcon />
               </IconButton>
-            </Tooltip>
-          </Box>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={handleNewTask}
-          >
-            Nouvelle Tâche
-          </Button>
-        </Box>
-      </Box>
-
-      <Grid container spacing={3}>
-        {todaysTasks.map((task) => (
-          <Grid item xs={12} key={task.id}>
-            <Paper sx={{ p: 2 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Box flex={1}>
-                  <Typography variant="h6" component="h2">
-                    {task.task || 'Sans description'}
-                  </Typography>
-                  <Typography color="textSecondary">
-                    Projet: {projects.find(p => p.id === task.projectId)?.name || 'Inconnu'}
-                  </Typography>
-                  {task.tags && task.tags.length > 0 && (
-                    <Box mt={1}>
-                      {task.tags.map((tag, index) => (
-                        <Typography
-                          key={index}
-                          component="span"
-                          sx={{
-                            backgroundColor: 'primary.main',
-                            color: 'white',
-                            px: 1,
-                            py: 0.5,
-                            borderRadius: 1,
-                            mr: 1,
-                            fontSize: '0.8rem',
-                          }}
-                        >
-                          {tag}
-                        </Typography>
-                      ))}
-                    </Box>
-                  )}
-                </Box>
-                <Box display="flex" alignItems="center" gap={2}>
-                  <Box textAlign="right">
-                    <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-                      <Typography variant="body2" color="textSecondary">
-                        Début: {task.startTime.toLocaleTimeString()}
-                      </Typography>
-                    </Box>
-                    {task.endTime && (
-                      <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-                        <Typography variant="body2" color="textSecondary">
-                          Fin: {task.endTime.toLocaleTimeString()}
-                        </Typography>
-                      </Box>
-                    )}
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <TimerIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="textSecondary">
-                        {task.isRunning 
-                          ? formatDuration(timers[task.id] || 0)
-                          : formatDuration(task.duration || 0)
-                        }
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Box>
-                    {!task.isRunning ? (
-                      <Tooltip title="Démarrer">
-                        <IconButton 
-                          color="primary" 
-                          onClick={() => handleStartTimer(task.id)}
-                          size="small"
-                        >
-                          <PlayArrow />
-                        </IconButton>
-                      </Tooltip>
-                    ) : (
-                      <Tooltip title="Arrêter">
-                        <IconButton 
-                          color="error" 
-                          onClick={() => handleStopTimer(task.id)}
-                          size="small"
-                        >
-                          <Stop />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </Box>
-                  <Box>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, task)}
-                    >
-                      <MoreVertIcon />
-                    </IconButton>
-                  </Box>
-                </Box>
-              </Box>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Menu contextuel */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItemMui onClick={handleEditClick}>
-          <ListItemIcon>
-            <EditIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Modifier</ListItemText>
-        </MenuItemMui>
-        <MenuItemMui onClick={handleDeleteClick}>
-          <ListItemIcon>
-            <DeleteIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Supprimer</ListItemText>
-        </MenuItemMui>
-      </Menu>
-
-      {/* Dialog de modification */}
-      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)}>
-        <DialogTitle>Modifier la tâche</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <TextField
-              select
-              fullWidth
-              label="Projet"
-              value={editTaskData.projectId}
-              onChange={(e) => setEditTaskData({ ...editTaskData, projectId: e.target.value })}
-              sx={{ mb: 2 }}
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleNewTask}
             >
-              {projects.map((project) => (
-                <MenuItem key={project.id} value={project.id}>
-                  {project.name}
-                </MenuItem>
-              ))}
-            </TextField>
+              Nouvelle Tâche
+            </Button>
+          </Box>
+        </Box>
+
+        {loading ? (
+          <Box display="flex" justifyContent="center" mt={4}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Alert severity="error">{error}</Alert>
+        ) : groupedTasks.length === 0 ? (
+          <Box textAlign="center" mt={4}>
+            <Typography variant="h6" color="textSecondary">
+              Aucune tâche pour aujourd'hui
+            </Typography>
+          </Box>
+        ) : (
+          <Grid container spacing={3}>
+            {groupedTasks.map((group) => {
+              const groupKey = `${group.projectId}-${group.task}`;
+              const isExpanded = expandedGroups.has(groupKey);
+              
+              return (
+                <Grid item xs={12} key={groupKey}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      bgcolor: group.isRunning ? 'action.hover' : 'background.paper',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        bgcolor: group.isRunning ? 'action.selected' : 'action.hover',
+                      },
+                    }}
+                    onClick={() => toggleGroupExpansion(groupKey)}
+                  >
+                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                      <Box flex={1}>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Typography variant="h6" component="h2">
+                            {projects.find(p => p.id === group.projectId)?.name || 'Projet inconnu'}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            sx={{ 
+                              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                              transition: 'transform 0.2s'
+                            }}
+                          >
+                            <KeyboardArrowDown />
+                          </IconButton>
+                        </Box>
+                        <Typography color="textSecondary" gutterBottom>
+                          {group.task}
+                        </Typography>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Timer fontSize="small" color="action" />
+                          <Typography variant="body2" color="textSecondary">
+                            Total: {formatDuration(group.totalDuration)}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            ({group.entries.length} entrée{group.entries.length > 1 ? 's' : ''})
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box onClick={(e) => e.stopPropagation()}>
+                        {!group.isRunning ? (
+                          <IconButton 
+                            onClick={() => handleStartTimer(group.entries[0].id)}
+                            color="primary"
+                          >
+                            <PlayArrow />
+                          </IconButton>
+                        ) : (
+                          <IconButton 
+                            onClick={() => {
+                              const runningEntry = group.entries.find(e => e.isRunning);
+                              if (runningEntry) {
+                                handleStopTimer(runningEntry.id);
+                              }
+                            }}
+                            color="secondary"
+                          >
+                            <Stop />
+                          </IconButton>
+                        )}
+                      </Box>
+                    </Box>
+
+                    <Collapse in={isExpanded}>
+                      <Box mt={2}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Détails des entrées :
+                        </Typography>
+                        {group.entries.map((entry) => (
+                          <Box 
+                            key={entry.id} 
+                            sx={{ 
+                              mt: 1, 
+                              p: 1, 
+                              borderRadius: 1,
+                              bgcolor: 'background.default',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Box>
+                              <Typography variant="body2">
+                                {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : 'En cours'}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                Durée: {formatDuration(entry.isRunning ? timers[entry.id] || 0 : entry.duration || 0)}
+                              </Typography>
+                            </Box>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditTimeEntry(entry);
+                              }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Collapse>
+                  </Paper>
+                </Grid>
+              );
+            })}
+          </Grid>
+        )}
+      </Container>
+
+      {/* Dialog de modification d'une entrée */}
+      <Dialog 
+        open={openEditTimeEntryDialog} 
+        onClose={() => setOpenEditTimeEntryDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Modifier l'entrée</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
+              label="Tâche"
+              value={editTimeEntryData.task}
+              onChange={(e) => setEditTimeEntryData(prev => ({ ...prev, task: e.target.value }))}
               fullWidth
-              label="Description de la tâche"
-              value={editTaskData.task}
-              onChange={(e) => setEditTaskData({ ...editTaskData, task: e.target.value })}
-              sx={{ mb: 2 }}
             />
-            <TextField
-              fullWidth
-              label="Tags (séparés par des virgules)"
-              value={editTaskData.tags}
-              onChange={(e) => setEditTaskData({ ...editTaskData, tags: e.target.value })}
-              helperText="Ex: urgent, bug, feature"
-            />
+            
+            <LocalizationProvider dateAdapter={AdapterDateFns} locale={fr}>
+              <Box display="flex" gap={2}>
+                <TimePicker
+                  label="Heure de début"
+                  value={editTimeEntryData.startTime}
+                  onChange={(newValue) => {
+                    if (newValue) {
+                      setEditTimeEntryData(prev => ({ ...prev, startTime: newValue }));
+                    }
+                  }}
+                  ampm={false}
+                  format="HH:mm"
+                />
+                <TimePicker
+                  label="Heure de fin"
+                  value={editTimeEntryData.endTime}
+                  onChange={(newValue) => {
+                    setEditTimeEntryData(prev => ({ ...prev, endTime: newValue }));
+                  }}
+                  ampm={false}
+                  format="HH:mm"
+                />
+              </Box>
+            </LocalizationProvider>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenEditDialog(false)}>Annuler</Button>
-          <Button onClick={handleEditSubmit} variant="contained" color="primary">
+          <Button onClick={() => setOpenEditTimeEntryDialog(false)}>
+            Annuler
+          </Button>
+          <Button onClick={handleEditTimeEntrySubmit} variant="contained" color="primary">
             Enregistrer
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </>
   );
 };
 
