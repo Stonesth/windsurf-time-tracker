@@ -9,6 +9,7 @@ coverage/
 # Production
 build/
 dist/
+dist_temp/
 out/
 
 # Environment files
