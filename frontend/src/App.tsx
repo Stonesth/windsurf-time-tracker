@@ -4,18 +4,21 @@ import { ThemeProvider } from '@mui/material/styles';
 import theme from './styles/theme';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProjectsProvider } from './contexts/ProjectsContext';
-import NavBar from './components/layout/NavBar';
-import Projects from './pages/Projects';
+import LoginForm from './components/auth/LoginForm';
+import SignUpForm from './components/auth/SignUpForm';
 import Dashboard from './pages/Dashboard';
-import LoginForm from './components/Auth/LoginForm';
-import SignUpForm from './components/Auth/SignUpForm';
+import Projects from './pages/Projects';
+import DailyTasks from './pages/DailyTasks';
+import NavBar from './components/layout/NavBar';
 import { CircularProgress, Box } from '@mui/material';
 import { AdminPage } from './pages/Admin';
 import Profile from './components/Profile/Profile';
-import DailyTasks from './pages/DailyTasks';
 
-// Composant pour protéger les routes
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { currentUser, loading } = useAuth();
 
   if (loading) {
@@ -34,6 +37,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 function App() {
+  const { currentUser } = useAuth();
+
   return (
     <ThemeProvider theme={theme}>
       <AuthProvider>
@@ -44,14 +49,21 @@ function App() {
               <Routes>
                 <Route
                   path="/"
+                  element={currentUser ? <Navigate to="/daily" /> : <Navigate to="/login" />}
+                />
+                <Route 
+                  path="/login" 
+                  element={currentUser ? <Navigate to="/daily" /> : <LoginForm />} 
+                />
+                <Route path="/signup" element={<SignUpForm />} />
+                <Route
+                  path="/dashboard"
                   element={
                     <ProtectedRoute>
                       <Dashboard />
                     </ProtectedRoute>
                   }
                 />
-                <Route path="/login" element={<LoginForm />} />
-                <Route path="/signup" element={<SignUpForm />} />
                 <Route
                   path="/projects"
                   element={

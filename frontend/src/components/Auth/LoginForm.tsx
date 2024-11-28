@@ -28,7 +28,7 @@ const LoginForm = () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       console.log('Connexion réussie');
-      navigate('/');  
+      navigate('/daily');  
     } catch (error: any) {
       console.error('Erreur de connexion:', error);
       setError(
