@@ -20,7 +20,12 @@ import {
   MenuItem,
   useTheme,
   useMediaQuery,
-  Collapse
+  Collapse,
+  Select,
+  FormControl,
+  InputLabel,
+  Autocomplete,
+  Chip
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -52,6 +57,7 @@ interface TimeEntry {
   endTime: Date | null;
   duration: number;
   task?: string;
+  notes?: string;
   tags?: string[];
   userId: string;
   isRunning?: boolean;
@@ -75,6 +81,9 @@ interface EditTimeEntryData {
   startTime: Date;
   endTime: Date | null;
   task: string;
+  notes?: string;
+  tags: string[];
+  projectId: string;
 }
 
 const DailyTasks = () => {
@@ -92,6 +101,7 @@ const DailyTasks = () => {
     task: '',
     tags: '',
   });
+  const [existingTags, setExistingTags] = useState<string[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [timers, setTimers] = useState<{ [key: string]: number }>({});
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -99,7 +109,10 @@ const DailyTasks = () => {
   const [editTimeEntryData, setEditTimeEntryData] = useState<EditTimeEntryData>({
     startTime: new Date(),
     endTime: null,
-    task: ''
+    task: '',
+    notes: '',
+    tags: [],
+    projectId: ''
   });
   const [openEditTimeEntryDialog, setOpenEditTimeEntryDialog] = useState(false);
 
@@ -252,6 +265,7 @@ const DailyTasks = () => {
         endTime: null,
         duration: 0,
         task: task.task,
+        notes: task.notes || '',
         tags: task.tags || [],
         isRunning: true
       };
@@ -317,8 +331,8 @@ const DailyTasks = () => {
   };
 
   const handleNewTask = async () => {
-    if (!currentUser || !projects.length) {
-      setError('Aucun projet disponible');
+    if (!currentUser) {
+      setError('Utilisateur non connecté');
       return;
     }
 
@@ -333,16 +347,14 @@ const DailyTasks = () => {
       }
 
       const now = new Date();
-      // Utiliser le premier projet disponible par défaut
-      const defaultProject = projects[0];
-
       const newTimeEntry = {
-        projectId: defaultProject.id,
+        projectId: '', // Pas de projet par défaut
         userId: currentUser.uid,
         startTime: Timestamp.fromDate(now),
         endTime: null,
         duration: 0,
         task: '',
+        notes: '',
         tags: [],
         isRunning: true
       };
@@ -358,14 +370,6 @@ const DailyTasks = () => {
 
       setTodaysTasks(prev => [newTask, ...prev]);
 
-      // Ouvrir directement le dialogue d'édition
-      setSelectedTask(newTask);
-      setEditTaskData({
-        projectId: newTask.projectId,
-        task: '',
-        tags: '',
-      });
-      setTimeout(() => setOpenEditDialog(true), 100);
     } catch (error) {
       console.error('Erreur lors de la création de la tâche:', error);
       setError('Impossible de créer la tâche. Veuillez réessayer.');
@@ -396,8 +400,6 @@ const DailyTasks = () => {
   };
 
   const handleEditSubmit = async () => {
-    if (!selectedTask) return;
-
     try {
       setLoading(true);
       setError(null);
@@ -408,16 +410,43 @@ const DailyTasks = () => {
         tags: editTaskData.tags ? editTaskData.tags.split(',').map(tag => tag.trim()) : [],
       };
 
-      await updateDoc(doc(db, 'timeEntries', selectedTask.id), updatedData);
+      if (selectedTask) {
+        // Mode édition
+        await updateDoc(doc(db, 'timeEntries', selectedTask.id), updatedData);
 
-      setTodaysTasks(prev => prev.map(task =>
-        task.id === selectedTask.id
-          ? { ...task, ...updatedData }
-          : task
-      ));
+        setTodaysTasks(prev => prev.map(task =>
+          task.id === selectedTask.id
+            ? { ...task, ...updatedData }
+            : task
+        ));
+      } else {
+        // Mode création
+        const now = new Date();
+        const newTimeEntry = {
+          ...updatedData,
+          userId: currentUser?.uid,
+          startTime: Timestamp.fromDate(now),
+          endTime: null,
+          duration: 0,
+          isRunning: true
+        };
+
+        const docRef = await addDoc(collection(db, 'timeEntries'), newTimeEntry);
+        const newTask = {
+          id: docRef.id,
+          ...newTimeEntry,
+          startTime: now,
+          endTime: null,
+        } as TimeEntry;
+
+        setTodaysTasks(prev => [newTask, ...prev]);
+      }
 
       setOpenEditDialog(false);
       setSelectedTask(null);
+      
+      // Mettre à jour la liste des tags
+      fetchExistingTags();
     } catch (error) {
       console.error('Erreur lors de la modification de la tâche:', error);
       setError('Impossible de modifier la tâche');
@@ -452,7 +481,10 @@ const DailyTasks = () => {
     setEditTimeEntryData({
       startTime: entry.startTime,
       endTime: entry.endTime,
-      task: entry.task || ''
+      task: entry.task || '',
+      notes: entry.notes || '',
+      tags: entry.tags || [],
+      projectId: entry.projectId
     });
     setOpenEditTimeEntryDialog(true);
   };
@@ -470,7 +502,10 @@ const DailyTasks = () => {
         startTime: Timestamp.fromDate(editTimeEntryData.startTime),
         endTime: editTimeEntryData.endTime ? Timestamp.fromDate(editTimeEntryData.endTime) : null,
         duration: duration,
-        task: editTimeEntryData.task
+        task: editTimeEntryData.task,
+        notes: editTimeEntryData.notes,
+        tags: editTimeEntryData.tags,
+        projectId: editTimeEntryData.projectId
       });
 
       // Mettre à jour l'état local
@@ -481,13 +516,17 @@ const DailyTasks = () => {
             startTime: editTimeEntryData.startTime,
             endTime: editTimeEntryData.endTime,
             duration: duration,
-            task: editTimeEntryData.task
+            task: editTimeEntryData.task,
+            notes: editTimeEntryData.notes,
+            tags: editTimeEntryData.tags,
+            projectId: editTimeEntryData.projectId
           };
         }
         return task;
       }));
 
       setOpenEditTimeEntryDialog(false);
+      fetchExistingTags(); // Mettre à jour la liste des tags
     } catch (error) {
       console.error('Erreur lors de la modification de l\'entrée:', error);
       setError('Impossible de modifier l\'entrée');
@@ -537,6 +576,33 @@ const DailyTasks = () => {
       return newSet;
     });
   };
+
+  const fetchExistingTags = async () => {
+    if (!currentUser) return;
+
+    try {
+      const timeEntriesQuery = query(
+        collection(db, 'timeEntries'),
+        where('userId', '==', currentUser.uid)
+      );
+
+      const snapshot = await getDocs(timeEntriesQuery);
+      const allTags = new Set<string>();
+      
+      snapshot.docs.forEach(doc => {
+        const tags = doc.data().tags || [];
+        tags.forEach((tag: string) => allTags.add(tag));
+      });
+
+      setExistingTags(Array.from(allTags));
+    } catch (error) {
+      console.error('Erreur lors de la récupération des tags:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchExistingTags();
+  }, [currentUser]);
 
   if (loading) {
     return (
@@ -792,6 +858,76 @@ const DailyTasks = () => {
       )}
 
       <Dialog
+        open={openEditDialog}
+        onClose={() => setOpenEditDialog(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          {selectedTask ? 'Modifier la tâche' : 'Nouvelle tâche'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel id="project-select-label">Projet</InputLabel>
+              <Select
+                labelId="project-select-label"
+                value={editTaskData.projectId}
+                label="Projet"
+                onChange={(e) => setEditTaskData(prev => ({ ...prev, projectId: e.target.value }))}
+              >
+                {projects.map((project) => (
+                  <MenuItem key={project.id} value={project.id}>
+                    {project.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Description de la tâche"
+              value={editTaskData.task}
+              onChange={(e) => setEditTaskData(prev => ({ ...prev, task: e.target.value }))}
+              fullWidth
+              multiline
+              rows={2}
+            />
+            <Autocomplete
+              multiple
+              freeSolo
+              options={existingTags}
+              value={editTaskData.tags ? editTaskData.tags.split(',').filter(tag => tag.trim() !== '') : []}
+              onChange={(_, newValue) => {
+                setEditTaskData(prev => ({ ...prev, tags: newValue.join(', ') }));
+              }}
+              renderTags={(value: readonly string[], getTagProps) =>
+                value.map((option: string, index: number) => (
+                  <Chip
+                    variant="outlined"
+                    label={option}
+                    {...getTagProps({ index })}
+                  />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Tags"
+                  placeholder="Ajouter des tags"
+                  helperText="Appuyez sur Entrée pour ajouter un nouveau tag"
+                />
+              )}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditDialog(false)}>Annuler</Button>
+          <Button onClick={handleEditSubmit} variant="contained">
+            {selectedTask ? 'Modifier' : 'Créer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
         open={openEditTimeEntryDialog}
         onClose={() => setOpenEditTimeEntryDialog(false)}
         fullWidth
@@ -805,11 +941,65 @@ const DailyTasks = () => {
             flexDirection: 'column',
             gap: 2
           }}>
+            <FormControl fullWidth>
+              <InputLabel id="project-select-label">Projet</InputLabel>
+              <Select
+                labelId="project-select-label"
+                value={editTimeEntryData.projectId}
+                label="Projet"
+                onChange={(e) => setEditTimeEntryData(prev => ({ ...prev, projectId: e.target.value }))}
+              >
+                <MenuItem value="">
+                  <em>Aucun projet</em>
+                </MenuItem>
+                {projects.map((project) => (
+                  <MenuItem key={project.id} value={project.id}>
+                    {project.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <TextField
-              label="Tâche"
+              label="Description"
               value={editTimeEntryData.task}
               onChange={(e) => setEditTimeEntryData(prev => ({ ...prev, task: e.target.value }))}
               fullWidth
+              multiline
+              rows={2}
+            />
+            <TextField
+              label="Notes"
+              value={editTimeEntryData.notes}
+              onChange={(e) => setEditTimeEntryData(prev => ({ ...prev, notes: e.target.value }))}
+              fullWidth
+              multiline
+              rows={2}
+            />
+            <Autocomplete
+              multiple
+              freeSolo
+              options={existingTags}
+              value={editTimeEntryData.tags}
+              onChange={(_, newValue) => {
+                setEditTimeEntryData(prev => ({ ...prev, tags: newValue }));
+              }}
+              renderTags={(value: readonly string[], getTagProps) =>
+                value.map((option: string, index: number) => (
+                  <Chip
+                    variant="outlined"
+                    label={option}
+                    {...getTagProps({ index })}
+                  />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Tags"
+                  placeholder="Ajouter des tags"
+                  helperText="Appuyez sur Entrée pour ajouter un nouveau tag"
+                />
+              )}
             />
             <LocalizationProvider dateAdapter={AdapterDateFns} locale={fr}>
               <Box sx={{
