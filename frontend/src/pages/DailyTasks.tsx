@@ -31,7 +31,7 @@ import {
   Delete as DeleteIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
-  Today as TodayIcon,
+  Home as HomeIcon,
 } from '@mui/icons-material';
 import { collection, query, where, getDocs, Timestamp, orderBy, limit, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -416,8 +416,15 @@ const DailyTasks = () => {
               <ChevronRightIcon />
             </IconButton>
             <Tooltip title="Aujourd'hui">
-              <IconButton onClick={goToToday}>
-                <TodayIcon />
+              <IconButton 
+                onClick={goToToday}
+                sx={{
+                  '&:hover': {
+                    backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                  },
+                }}
+              >
+                <HomeIcon />
               </IconButton>
             </Tooltip>
           </Box>
