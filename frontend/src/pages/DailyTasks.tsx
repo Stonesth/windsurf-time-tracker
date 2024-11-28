@@ -29,11 +29,17 @@ import {
   MoreVert as MoreVertIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  Today as TodayIcon,
 } from '@mui/icons-material';
 import { collection, query, where, getDocs, Timestamp, orderBy, limit, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectsContext';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import fr from 'date-fns/locale/fr';
 
 interface TimeEntry {
   id: string;
@@ -62,6 +68,7 @@ const DailyTasks = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TimeEntry | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [editTaskData, setEditTaskData] = useState<NewTaskData>({
     projectId: '',
     task: '',
@@ -70,6 +77,28 @@ const DailyTasks = () => {
 
   // Timer state
   const [timers, setTimers] = useState<{ [key: string]: number }>({});
+
+  const handleDateChange = (date: Date | null) => {
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
+
+  const goToPreviousDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() - 1);
+    setSelectedDate(newDate);
+  };
+
+  const goToNextDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + 1);
+    setSelectedDate(newDate);
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date());
+  };
 
   useEffect(() => {
     const intervals: { [key: string]: NodeJS.Timeout } = {};
@@ -92,6 +121,49 @@ const DailyTasks = () => {
       Object.values(intervals).forEach(interval => clearInterval(interval));
     };
   }, [todaysTasks]);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      if (!currentUser) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const timeEntriesQuery = query(
+          collection(db, 'timeEntries'),
+          where('userId', '==', currentUser.uid),
+          where('startTime', '>=', Timestamp.fromDate(startOfDay)),
+          where('startTime', '<=', Timestamp.fromDate(endOfDay)),
+          orderBy('startTime', 'desc'),
+          limit(50)
+        );
+
+        const snapshot = await getDocs(timeEntriesQuery);
+        const tasks = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          startTime: doc.data().startTime.toDate(),
+          endTime: doc.data().endTime?.toDate() || null,
+        })) as TimeEntry[];
+
+        setTodaysTasks(tasks);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des tâches:', error);
+        setError('Impossible de charger les tâches. Veuillez réessayer plus tard.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, [currentUser, selectedDate]);
 
   const handleStartTimer = async (taskId: string) => {
     try {
@@ -169,43 +241,6 @@ const DailyTasks = () => {
 
     return parts.join(' ');
   };
-
-  useEffect(() => {
-    const fetchTodaysTasks = async () => {
-      if (!currentUser) return;
-
-      try {
-        setError(null);
-        const now = new Date();
-        const startOfDay = new Date(now.setHours(0, 0, 0, 0));
-
-        const timeEntriesQuery = query(
-          collection(db, 'timeEntries'),
-          where('userId', '==', currentUser.uid),
-          where('startTime', '>=', Timestamp.fromDate(startOfDay)),
-          orderBy('startTime', 'desc'),
-          limit(50)
-        );
-
-        const snapshot = await getDocs(timeEntriesQuery);
-        const tasks = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          startTime: doc.data().startTime.toDate(),
-          endTime: doc.data().endTime?.toDate() || null,
-        })) as TimeEntry[];
-
-        setTodaysTasks(tasks);
-      } catch (error) {
-        console.error('Erreur lors de la récupération des tâches:', error);
-        setError('Impossible de charger les tâches. Veuillez réessayer plus tard.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTodaysTasks();
-  }, [currentUser]);
 
   const handleNewTask = async () => {
     if (!currentUser || !projects.length) {
@@ -360,14 +395,41 @@ const DailyTasks = () => {
         <Typography variant="h4" component="h1">
           Tâches du Jour
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={handleNewTask}
-        >
-          Nouvelle Tâche
-        </Button>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Box display="flex" alignItems="center" bgcolor="background.paper" borderRadius={1} boxShadow={1}>
+            <IconButton onClick={goToPreviousDay}>
+              <ChevronLeftIcon />
+            </IconButton>
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
+              <DatePicker
+                value={selectedDate}
+                onChange={handleDateChange}
+                slotProps={{
+                  textField: {
+                    size: "small",
+                    sx: { width: 150 }
+                  }
+                }}
+              />
+            </LocalizationProvider>
+            <IconButton onClick={goToNextDay}>
+              <ChevronRightIcon />
+            </IconButton>
+            <Tooltip title="Aujourd'hui">
+              <IconButton onClick={goToToday}>
+                <TodayIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={handleNewTask}
+          >
+            Nouvelle Tâche
+          </Button>
+        </Box>
       </Box>
 
       <Grid container spacing={3}>
