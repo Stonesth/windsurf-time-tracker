@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -9,8 +9,11 @@ import {
   Menu,
   MenuItem,
 } from '@mui/material';
-import { AccountCircle } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import {
+  AccountCircle,
+  Dashboard as DashboardIcon,
+} from '@mui/icons-material';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/authService';
 import { UserRole } from '../../types/user';
@@ -18,7 +21,7 @@ import { UserRole } from '../../types/user';
 const NavBar = () => {
   const navigate = useNavigate();
   const { currentUser, userRole } = useAuth();
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -31,15 +34,17 @@ const NavBar = () => {
   const handleLogout = async () => {
     try {
       await authService.logout();
+      handleClose();
       navigate('/login');
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
     }
   };
 
-  if (!currentUser) {
-    return null;
-  }
+  if (!currentUser) return null;
+
+  console.log('User Role from Context:', userRole);
+  const isAdmin = userRole === UserRole.ADMIN;
 
   return (
     <AppBar position="static">
@@ -48,23 +53,38 @@ const NavBar = () => {
           Time Tracker
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Button color="inherit" onClick={() => navigate('/')}>
+          <Button
+            color="inherit"
+            component={Link}
+            to="/dashboard"
+            startIcon={<DashboardIcon />}
+          >
             Dashboard
           </Button>
-          <Button color="inherit" onClick={() => navigate('/projects')}>
+          <Button color="inherit" component={Link} to="/projects">
             Projets
           </Button>
-          <Button color="inherit" onClick={() => navigate('/daily')}>
+          <Button color="inherit" component={Link} to="/daily">
             Tâches du Jour
           </Button>
-          {userRole === UserRole.ADMIN && (
-            <Button color="inherit" onClick={() => navigate('/admin')}>
+          {isAdmin && (
+            <Button 
+              color="inherit" 
+              component={Link} 
+              to="/admin"
+              sx={{ 
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                }
+              }}
+            >
               Administration
             </Button>
           )}
           <IconButton
             size="large"
-            aria-label="compte de l'utilisateur"
+            aria-label="account of current user"
             aria-controls="menu-appbar"
             aria-haspopup="true"
             onClick={handleMenu}
@@ -76,7 +96,7 @@ const NavBar = () => {
             id="menu-appbar"
             anchorEl={anchorEl}
             anchorOrigin={{
-              vertical: 'bottom',
+              vertical: 'top',
               horizontal: 'right',
             }}
             keepMounted
@@ -87,18 +107,10 @@ const NavBar = () => {
             open={Boolean(anchorEl)}
             onClose={handleClose}
           >
-            <MenuItem onClick={() => {
-              handleClose();
-              navigate('/profile');
-            }}>
-              Profil
+            <MenuItem component={Link} to="/profile" onClick={handleClose}>
+              Profile
             </MenuItem>
-            <MenuItem onClick={() => {
-              handleClose();
-              handleLogout();
-            }}>
-              Déconnexion
-            </MenuItem>
+            <MenuItem onClick={handleLogout}>Se déconnecter</MenuItem>
           </Menu>
         </Box>
       </Toolbar>
