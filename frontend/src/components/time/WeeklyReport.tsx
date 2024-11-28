@@ -39,10 +39,6 @@ export const WeeklyReport: React.FC<WeeklyReportProps> = ({ onTimeUpdate }) => {
       if (!currentUser) return;
 
       try {
-        console.log('Paramètres du site:', settings);
-        console.log('Heures par jour:', getDailyTargetHours());
-        console.log('Heures par semaine:', getWeeklyTargetHours());
-
         // Calculer le début et la fin de la semaine
         const now = new Date();
         const startOfWeek = new Date(now);
@@ -51,9 +47,6 @@ export const WeeklyReport: React.FC<WeeklyReportProps> = ({ onTimeUpdate }) => {
 
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(endOfWeek.getDate() + 7);
-
-        console.log('Début de la semaine:', startOfWeek);
-        console.log('Fin de la semaine:', endOfWeek);
 
         // Requête unique pour toutes les entrées de temps de l'utilisateur
         const timeEntriesQuery = query(
@@ -83,8 +76,6 @@ export const WeeklyReport: React.FC<WeeklyReportProps> = ({ onTimeUpdate }) => {
           }
         });
 
-        console.log('Heures quotidiennes:', dailyHours);
-
         // Créer le rapport hebdomadaire
         const weeklyReport = Object.entries(dailyHours).map(([dateStr, hours]) => {
           const date = new Date(dateStr);
@@ -100,7 +91,6 @@ export const WeeklyReport: React.FC<WeeklyReportProps> = ({ onTimeUpdate }) => {
           };
         });
 
-        console.log('Rapport hebdomadaire:', weeklyReport);
         setWeeklyData(weeklyReport);
       } catch (error) {
         console.error('Erreur lors de la récupération des données hebdomadaires:', error);
@@ -131,7 +121,6 @@ export const WeeklyReport: React.FC<WeeklyReportProps> = ({ onTimeUpdate }) => {
 
   const getTargetHours = (): number => {
     const weeklyTarget = getWeeklyTargetHours();
-    console.log('Objectif hebdomadaire:', weeklyTarget);
     return weeklyTarget;
   };
 
