@@ -1,39 +1,40 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
+  Box,
+  Button,
   Container,
   Typography,
-  Box,
+  IconButton,
   Paper,
   Grid,
   CircularProgress,
-  Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  MenuItem,
-  Alert,
-  IconButton,
   Tooltip,
   Menu,
   ListItemIcon,
   ListItemText,
-  MenuItem as MenuItemMui,
+  MenuItem,
+  useTheme,
+  useMediaQuery,
   Collapse
 } from '@mui/material';
-import { 
-  Add as AddIcon, 
-  PlayArrow, 
+import {
+  Add as AddIcon,
+  PlayArrow,
   Stop,
   Timer,
-  MoreVert as MoreVertIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
+  KeyboardArrowDown,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Home as HomeIcon,
-  KeyboardArrowDown
+  ExpandMore as ExpandMoreIcon,
+  MoreVert as MoreVertIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { collection, query, where, getDocs, Timestamp, orderBy, limit, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -102,18 +103,21 @@ const DailyTasks = () => {
   });
   const [openEditTimeEntryDialog, setOpenEditTimeEntryDialog] = useState(false);
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   const formatDuration = (seconds: number) => {
     if (seconds === 0) return '0s';
-    
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = seconds % 60;
-    
+
     const parts = [];
     if (hours > 0) parts.push(`${hours}h`);
     if (minutes > 0) parts.push(`${minutes}m`);
     if (remainingSeconds > 0) parts.push(`${remainingSeconds}s`);
-    
+
     return parts.join(' ');
   };
 
@@ -202,7 +206,7 @@ const DailyTasks = () => {
       if (task.isRunning) {
         const startTime = task.startTime.getTime();
         const initialDuration = task.duration || 0;
-        
+
         setTimers(prev => ({
           ...prev,
           [task.id]: Math.floor((Date.now() - startTime) / 1000) + initialDuration
@@ -253,7 +257,7 @@ const DailyTasks = () => {
       };
 
       const docRef = await addDoc(collection(db, 'timeEntries'), newTimeEntry);
-      
+
       const newTask = {
         id: docRef.id,
         ...newTimeEntry,
@@ -331,7 +335,7 @@ const DailyTasks = () => {
       const now = new Date();
       // Utiliser le premier projet disponible par défaut
       const defaultProject = projects[0];
-      
+
       const newTimeEntry = {
         projectId: defaultProject.id,
         userId: currentUser.uid,
@@ -344,7 +348,7 @@ const DailyTasks = () => {
       };
 
       const docRef = await addDoc(collection(db, 'timeEntries'), newTimeEntry);
-      
+
       const newTask = {
         id: docRef.id,
         ...newTimeEntry,
@@ -406,7 +410,7 @@ const DailyTasks = () => {
 
       await updateDoc(doc(db, 'timeEntries', selectedTask.id), updatedData);
 
-      setTodaysTasks(prev => prev.map(task => 
+      setTodaysTasks(prev => prev.map(task =>
         task.id === selectedTask.id
           ? { ...task, ...updatedData }
           : task
@@ -458,7 +462,7 @@ const DailyTasks = () => {
 
     try {
       const docRef = doc(db, 'timeEntries', editTimeEntryId);
-      const duration = editTimeEntryData.endTime 
+      const duration = editTimeEntryData.endTime
         ? Math.floor((editTimeEntryData.endTime.getTime() - editTimeEntryData.startTime.getTime()) / 1000)
         : 0;
 
@@ -505,7 +509,7 @@ const DailyTasks = () => {
       const group = acc.get(key)!;
       group.entries.push(task);
       group.isRunning = group.isRunning || task.isRunning || false;
-      
+
       // Calculer la durée totale
       if (task.isRunning) {
         const currentDuration = Math.floor((Date.now() - task.startTime.getTime()) / 1000);
@@ -513,7 +517,7 @@ const DailyTasks = () => {
       } else {
         group.totalDuration += task.duration || 0;
       }
-      
+
       return acc;
     }, new Map<string, GroupedTimeEntry>());
 
@@ -545,213 +549,274 @@ const DailyTasks = () => {
   if (error) {
     return (
       <Box display="flex" justifyContent="center" p={3}>
-        <Alert severity="error">{error}</Alert>
+        <Typography variant="h6" color="textSecondary">
+          {error}
+        </Typography>
       </Box>
     );
   }
 
   return (
-    <>
-      <Container 
-        maxWidth="lg" 
-        sx={{ 
-          mt: 3, 
-          mb: 4,
-          minHeight: 'calc(100vh - 64px)',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-          <Typography variant="h4" component="h1">
-            Tâches du Jour
-          </Typography>
-          <Box display="flex" alignItems="center" gap={2}>
-            <TotalTimeDisplay />
-            <Box display="flex" alignItems="center" bgcolor="background.paper" borderRadius={1} boxShadow={1}>
-              <IconButton onClick={handlePreviousDay}>
-                <ChevronLeftIcon />
-              </IconButton>
-              <LocalizationProvider dateAdapter={AdapterDateFns} locale={fr}>
-                <DatePicker
-                  value={selectedDate}
-                  onChange={(newValue) => {
-                    if (newValue) {
-                      setSelectedDate(newValue);
-                    }
-                  }}
-                  format="dd/MM/yyyy"
-                />
-              </LocalizationProvider>
-              <IconButton onClick={handleNextDay}>
-                <ChevronRightIcon />
-              </IconButton>
-              <IconButton onClick={() => setSelectedDate(new Date())}>
-                <HomeIcon />
-              </IconButton>
-            </Box>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleNewTask}
-            >
-              Nouvelle Tâche
-            </Button>
+    <Container
+      maxWidth="lg"
+      sx={{
+        mt: 3,
+        mb: 4,
+        minHeight: 'calc(100vh - 64px)',
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+    >
+      <Box display="flex" flexDirection={isMobile ? 'column' : 'row'} justifyContent="space-between" alignItems={isMobile ? 'stretch' : 'center'} mb={4}>
+        <Typography variant="h4" component="h1" sx={{ mb: isMobile ? 2 : 0 }}>
+          Tâches du Jour
+        </Typography>
+        <Box
+          display="flex"
+          flexDirection={isMobile ? 'column' : 'row'}
+          alignItems={isMobile ? 'stretch' : 'center'}
+          gap={2}
+        >
+          <TotalTimeDisplay />
+          <Box
+            display="flex"
+            alignItems="center"
+            bgcolor="background.paper"
+            borderRadius={1}
+            boxShadow={1}
+            sx={{
+              width: isMobile ? '100%' : 'auto',
+              justifyContent: isMobile ? 'space-between' : 'flex-start'
+            }}
+          >
+            <IconButton onClick={handlePreviousDay}>
+              <ChevronLeftIcon />
+            </IconButton>
+            <LocalizationProvider dateAdapter={AdapterDateFns} locale={fr}>
+              <DatePicker
+                value={selectedDate}
+                onChange={(newValue) => {
+                  if (newValue) {
+                    setSelectedDate(newValue);
+                  }
+                }}
+                format="dd/MM/yyyy"
+                sx={{ width: isMobile ? '100%' : 'auto' }}
+              />
+            </LocalizationProvider>
+            <IconButton onClick={handleNextDay}>
+              <ChevronRightIcon />
+            </IconButton>
+            <IconButton onClick={() => setSelectedDate(new Date())}>
+              <HomeIcon />
+            </IconButton>
           </Box>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleNewTask}
+            fullWidth={isMobile}
+          >
+            Nouvelle Tâche
+          </Button>
         </Box>
+      </Box>
 
-        {loading ? (
-          <Box display="flex" justifyContent="center" mt={4}>
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Alert severity="error">{error}</Alert>
-        ) : groupedTasks.length === 0 ? (
-          <Box textAlign="center" mt={4}>
-            <Typography variant="h6" color="textSecondary">
-              Aucune tâche pour aujourd'hui
-            </Typography>
-          </Box>
-        ) : (
-          <Grid container spacing={3}>
-            {groupedTasks.map((group) => {
-              const groupKey = `${group.projectId}-${group.task}`;
-              const isExpanded = expandedGroups.has(groupKey);
-              
-              return (
-                <Grid item xs={12} key={groupKey}>
-                  <Paper
-                    sx={{
-                      p: 2,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      bgcolor: group.isRunning ? 'action.hover' : 'background.paper',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        bgcolor: group.isRunning ? 'action.selected' : 'action.hover',
-                      },
-                    }}
-                    onClick={() => toggleGroupExpansion(groupKey)}
+      {loading ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+          <CircularProgress />
+        </Box>
+      ) : todaysTasks.length === 0 ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+          <Typography variant="h6" color="textSecondary">
+            Aucune tâche pour aujourd'hui
+          </Typography>
+        </Box>
+      ) : (
+        <Grid container spacing={3}>
+          {groupedTasks.map((group) => {
+            const groupKey = `${group.projectId}-${group.task}`;
+            const isExpanded = expandedGroups.has(groupKey);
+
+            return (
+              <Grid item xs={12} key={groupKey}>
+                <Paper
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    bgcolor: group.isRunning ? 'action.hover' : 'background.paper',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      bgcolor: group.isRunning ? 'action.selected' : 'action.hover',
+                    },
+                  }}
+                  onClick={() => toggleGroupExpansion(groupKey)}
+                >
+                  <Box
+                    display="flex"
+                    flexDirection={isMobile ? 'column' : 'row'}
+                    justifyContent="space-between"
+                    alignItems={isMobile ? 'stretch' : 'flex-start'}
+                    gap={isMobile ? 2 : 0}
                   >
-                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                      <Box flex={1}>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Typography variant="h6" component="h2">
-                            {projects.find(p => p.id === group.projectId)?.name || 'Projet inconnu'}
-                          </Typography>
-                          <IconButton
-                            size="small"
-                            sx={{ 
-                              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                              transition: 'transform 0.2s'
-                            }}
-                          >
-                            <KeyboardArrowDown />
-                          </IconButton>
-                        </Box>
-                        <Typography color="textSecondary" gutterBottom>
-                          {group.task}
+                    <Box flex={1}>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Typography variant="h6" component="h2">
+                          {projects.find(p => p.id === group.projectId)?.name || 'Projet inconnu'}
                         </Typography>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Timer fontSize="small" color="action" />
-                          <Typography variant="body2" color="textSecondary">
-                            Total: {formatDuration(group.totalDuration)}
-                          </Typography>
-                          <Typography variant="body2" color="textSecondary">
-                            ({group.entries.length} entrée{group.entries.length > 1 ? 's' : ''})
-                          </Typography>
-                        </Box>
+                        <IconButton
+                          size="small"
+                          sx={{
+                            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.2s'
+                          }}
+                        >
+                          <KeyboardArrowDown />
+                        </IconButton>
                       </Box>
-                      <Box onClick={(e) => e.stopPropagation()}>
-                        {!group.isRunning ? (
-                          <IconButton 
-                            onClick={() => handleStartTimer(group.entries[0].id)}
-                            color="primary"
-                          >
-                            <PlayArrow />
-                          </IconButton>
-                        ) : (
-                          <IconButton 
-                            onClick={() => {
-                              const runningEntry = group.entries.find(e => e.isRunning);
-                              if (runningEntry) {
-                                handleStopTimer(runningEntry.id);
-                              }
-                            }}
-                            color="secondary"
-                          >
-                            <Stop />
-                          </IconButton>
-                        )}
+                      <Typography color="textSecondary" gutterBottom>
+                        {group.task}
+                      </Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Timer fontSize="small" color="action" />
+                        <Typography variant="body2" color="textSecondary">
+                          Total: {formatDuration(group.totalDuration)}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          ({group.entries.length} entrée{group.entries.length > 1 ? 's' : ''})
+                        </Typography>
                       </Box>
                     </Box>
 
-                    <Collapse in={isExpanded}>
-                      <Box mt={2}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Détails des entrées :
-                        </Typography>
-                        {group.entries.map((entry) => (
-                          <Box 
-                            key={entry.id} 
-                            sx={{ 
-                              mt: 1, 
-                              p: 1, 
-                              borderRadius: 1,
-                              bgcolor: 'background.default',
+                    <Box
+                      onClick={(e) => e.stopPropagation()}
+                      sx={{
+                        display: 'flex',
+                        justifyContent: isMobile ? 'flex-end' : 'flex-start',
+                        width: isMobile ? '100%' : 'auto'
+                      }}
+                    >
+                      {!group.isRunning ? (
+                        <IconButton
+                          onClick={() => handleStartTimer(group.entries[0].id)}
+                          color="primary"
+                        >
+                          <PlayArrow />
+                        </IconButton>
+                      ) : (
+                        <IconButton
+                          onClick={() => {
+                            const runningEntry = group.entries.find(e => e.isRunning);
+                            if (runningEntry) {
+                              handleStopTimer(runningEntry.id);
+                            }
+                          }}
+                          color="secondary"
+                        >
+                          <Stop />
+                        </IconButton>
+                      )}
+                    </Box>
+                  </Box>
+
+                  <Collapse in={isExpanded}>
+                    <Box mt={2}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Détails des entrées :
+                      </Typography>
+                      {group.entries.map((entry) => (
+                        <Box
+                          key={entry.id}
+                          sx={{
+                            mt: 1,
+                            p: 2,
+                            borderRadius: 1,
+                            bgcolor: 'background.default',
+                            display: 'flex',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            justifyContent: 'space-between',
+                            alignItems: isMobile ? 'stretch' : 'center',
+                            gap: isMobile ? 1 : 0
+                          }}
+                        >
+                          <Box>
+                            <Typography variant="body2">
+                              {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : 'En cours'}
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary">
+                              Durée: {formatDuration(entry.isRunning ? timers[entry.id] || 0 : entry.duration || 0)}
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
                               display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center'
+                              justifyContent: isMobile ? 'flex-end' : 'flex-start',
+                              width: isMobile ? '100%' : 'auto',
+                              gap: 1
                             }}
                           >
-                            <Box>
-                              <Typography variant="body2">
-                                {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : 'En cours'}
-                              </Typography>
-                              <Typography variant="body2" color="textSecondary">
-                                Durée: {formatDuration(entry.isRunning ? timers[entry.id] || 0 : entry.duration || 0)}
-                              </Typography>
-                            </Box>
-                            <IconButton
+                            <Button
                               size="small"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEditTimeEntry(entry);
                               }}
+                              variant="outlined"
+                              fullWidth={isMobile}
                             >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
+                              Modifier
+                            </Button>
+                            <Button
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTimeEntry(entry.id);
+                              }}
+                              variant="outlined"
+                              color="error"
+                              fullWidth={isMobile}
+                            >
+                              Supprimer
+                            </Button>
                           </Box>
-                        ))}
-                      </Box>
-                    </Collapse>
-                  </Paper>
-                </Grid>
-              );
-            })}
-          </Grid>
-        )}
-      </Container>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Collapse>
+                </Paper>
+              </Grid>
+            );
+          })}
+        </Grid>
+      )}
 
-      {/* Dialog de modification d'une entrée */}
-      <Dialog 
-        open={openEditTimeEntryDialog} 
+      <Dialog
+        open={openEditTimeEntryDialog}
         onClose={() => setOpenEditTimeEntryDialog(false)}
-        maxWidth="sm"
         fullWidth
+        maxWidth="sm"
       >
         <DialogTitle>Modifier l'entrée</DialogTitle>
         <DialogContent>
-          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{
+            pt: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2
+          }}>
             <TextField
               label="Tâche"
               value={editTimeEntryData.task}
               onChange={(e) => setEditTimeEntryData(prev => ({ ...prev, task: e.target.value }))}
               fullWidth
             />
-            
             <LocalizationProvider dateAdapter={AdapterDateFns} locale={fr}>
-              <Box display="flex" gap={2}>
+              <Box sx={{
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: 2
+              }}>
                 <TimePicker
                   label="Heure de début"
                   value={editTimeEntryData.startTime}
@@ -760,6 +825,7 @@ const DailyTasks = () => {
                       setEditTimeEntryData(prev => ({ ...prev, startTime: newValue }));
                     }
                   }}
+                  sx={{ width: '100%' }}
                   ampm={false}
                   format="HH:mm"
                 />
@@ -769,6 +835,7 @@ const DailyTasks = () => {
                   onChange={(newValue) => {
                     setEditTimeEntryData(prev => ({ ...prev, endTime: newValue }));
                   }}
+                  sx={{ width: '100%' }}
                   ampm={false}
                   format="HH:mm"
                 />
@@ -776,16 +843,14 @@ const DailyTasks = () => {
             </LocalizationProvider>
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditTimeEntryDialog(false)}>
-            Annuler
-          </Button>
-          <Button onClick={handleEditTimeEntrySubmit} variant="contained" color="primary">
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setOpenEditTimeEntryDialog(false)}>Annuler</Button>
+          <Button onClick={handleEditTimeEntrySubmit} variant="contained">
             Enregistrer
           </Button>
         </DialogActions>
       </Dialog>
-    </>
+    </Container>
   );
 };
 
