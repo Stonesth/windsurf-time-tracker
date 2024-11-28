@@ -12,18 +12,15 @@ import {
   Alert
 } from '@mui/material';
 import { getAuth, updateProfile } from 'firebase/auth';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../types/user';
 
 const Profile = () => {
   const auth = getAuth();
   const user = auth.currentUser;
-  const storage = getStorage();
   const { userRole } = useAuth();
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
   const [email, setEmail] = useState(user?.email || '');
   const [isEditing, setIsEditing] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
@@ -44,59 +41,18 @@ const Profile = () => {
   };
 
   useEffect(() => {
-    // Mise à jour des états quand l'utilisateur change
     if (user) {
       setDisplayName(user.displayName || '');
-      setPhotoURL(user.photoURL || '');
       setEmail(user.email || '');
     }
   }, [user]);
-
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files?.[0]) return;
-    
-    try {
-      const file = event.target.files[0];
-      const metadata = {
-        contentType: file.type,
-        customMetadata: {
-          'Access-Control-Allow-Origin': '*'
-        }
-      };
-      const storageRef = ref(storage, `profile-photos/${user?.uid}`);
-      await uploadBytes(storageRef, file, metadata);
-      const downloadURL = await getDownloadURL(storageRef);
-      setPhotoURL(downloadURL);
-      
-      // Mettre à jour le profil immédiatement après le téléchargement réussi
-      if (user) {
-        await updateProfile(user, {
-          photoURL: downloadURL
-        });
-      }
-      
-      setNotification({
-        open: true,
-        message: 'Photo de profil mise à jour avec succès',
-        severity: 'success'
-      });
-    } catch (error) {
-      console.error('Erreur lors du téléchargement:', error);
-      setNotification({
-        open: true,
-        message: 'Erreur lors du téléchargement de la photo',
-        severity: 'error'
-      });
-    }
-  };
 
   const handleSave = async () => {
     if (!user) return;
 
     try {
       await updateProfile(user, {
-        displayName,
-        photoURL
+        displayName: displayName,
       });
 
       setIsEditing(false);
@@ -106,6 +62,7 @@ const Profile = () => {
         severity: 'success'
       });
     } catch (error) {
+      console.error('Erreur lors de la mise à jour du profil:', error);
       setNotification({
         open: true,
         message: 'Erreur lors de la mise à jour du profil',
@@ -114,99 +71,82 @@ const Profile = () => {
     }
   };
 
+  const handleCloseNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
+      <Paper sx={{ p: 4 }}>
         <Grid container spacing={4}>
-          <Grid item xs={12} display="flex" justifyContent="center">
-            <Box position="relative">
+          <Grid item xs={12}>
+            <Box display="flex" alignItems="center" gap={2}>
               <Avatar
-                src={photoURL}
-                sx={{ width: 120, height: 120 }}
+                sx={{ width: 100, height: 100 }}
                 alt={displayName}
-              />
-              {isEditing && (
-                <Button
-                  component="label"
-                  variant="contained"
-                  size="small"
-                  sx={{ position: 'absolute', bottom: -10, left: '50%', transform: 'translateX(-50%)' }}
-                >
-                  Changer
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                  />
-                </Button>
-              )}
+              >
+                {displayName?.charAt(0)?.toUpperCase() || email?.charAt(0)?.toUpperCase()}
+              </Avatar>
+              <Box>
+                <Typography variant="h5" gutterBottom>
+                  Profil Utilisateur
+                </Typography>
+                <Typography color="textSecondary">
+                  Rôle: {getRoleLabel(userRole)}
+                </Typography>
+              </Box>
             </Box>
           </Grid>
 
           <Grid item xs={12}>
-            <Typography variant="h5" gutterBottom textAlign="center">
-              Mon Profil
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Nom d'affichage"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              disabled={!isEditing}
-              margin="normal"
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Email"
-              value={email}
-              disabled
-              margin="normal"
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Rôle"
-              value={getRoleLabel(userRole)}
-              disabled
-              margin="normal"
-            />
-          </Grid>
-
-          <Grid item xs={12} display="flex" justifyContent="center" gap={2}>
-            {!isEditing ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => setIsEditing(true)}
-              >
-                Modifier
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleSave}
-                >
-                  Enregistrer
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={() => setIsEditing(false)}
-                >
-                  Annuler
-                </Button>
-              </>
-            )}
+            <Box component="form" noValidate>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Nom d'affichage"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    disabled={!isEditing}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    value={email}
+                    disabled
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  {!isEditing ? (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      Modifier
+                    </Button>
+                  ) : (
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleSave}
+                      >
+                        Enregistrer
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        onClick={() => setIsEditing(false)}
+                      >
+                        Annuler
+                      </Button>
+                    </Box>
+                  )}
+                </Grid>
+              </Grid>
+            </Box>
           </Grid>
         </Grid>
       </Paper>
@@ -214,9 +154,13 @@ const Profile = () => {
       <Snackbar
         open={notification.open}
         autoHideDuration={6000}
-        onClose={() => setNotification({ ...notification, open: false })}
+        onClose={handleCloseNotification}
       >
-        <Alert severity={notification.severity as 'success' | 'error'}>
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity as 'success' | 'error'}
+          sx={{ width: '100%' }}
+        >
           {notification.message}
         </Alert>
       </Snackbar>

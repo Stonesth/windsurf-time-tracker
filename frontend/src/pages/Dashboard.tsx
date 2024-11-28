@@ -4,15 +4,12 @@ import {
   Typography,
   Box,
   Grid,
-  Button,
   Paper,
   CardContent,
   Alert,
   CircularProgress,
   Card,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import TimeTracker from '../components/time/TimeTracker';
 import TimeStats from '../components/time/TimeStats';
 import WeeklyReport from '../components/time/WeeklyReport';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
@@ -30,7 +27,6 @@ interface DashboardStats {
 }
 
 const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
   const { currentUser, userRole } = useAuth();
   const [isLoading, setIsLoading] = React.useState(true);
   const [stats, setStats] = React.useState<DashboardStats>({
@@ -116,14 +112,6 @@ const Dashboard: React.FC = () => {
     fetchStats();
   }, [fetchStats]);
 
-  const handleNewProject = () => {
-    navigate('/projects', { state: { openNewProject: true } });
-  };
-
-  const handleTimeUpdate = React.useCallback(() => {
-    fetchStats();
-  }, [fetchStats]);
-
   if (isLoading) {
     return (
       <Box
@@ -147,16 +135,6 @@ const Dashboard: React.FC = () => {
               <Typography variant="h4" component="h1" gutterBottom>
                 Tableau de bord
               </Typography>
-              {canWrite(userRole) && (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<AddIcon />}
-                  onClick={handleNewProject}
-                >
-                  Nouveau Projet
-                </Button>
-              )}
             </Box>
           </Grid>
 
@@ -217,34 +195,12 @@ const Dashboard: React.FC = () => {
             </Grid>
           </Grid>
 
-          {/* Suivi du temps en cours */}
+          {/* Graphiques et statistiques */}
           <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Suivi du temps
-              </Typography>
-              <TimeTracker onTimeUpdate={handleTimeUpdate} />
-            </Paper>
+            <TimeStats />
           </Grid>
-
-          {/* Rapport hebdomadaire */}
           <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Rapport hebdomadaire
-              </Typography>
-              <WeeklyReport onTimeUpdate={handleTimeUpdate} />
-            </Paper>
-          </Grid>
-
-          {/* Statistiques du temps */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Statistiques du temps
-              </Typography>
-              <TimeStats />
-            </Paper>
+            <WeeklyReport />
           </Grid>
         </Grid>
       </Box>
