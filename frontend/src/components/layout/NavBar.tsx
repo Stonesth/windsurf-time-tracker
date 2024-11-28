@@ -35,7 +35,7 @@ const NavBar = () => {
 
   const handleLogout = async () => {
     try {
-      await authService.signOut();
+      await authService.logout();
       navigate('/login');
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);

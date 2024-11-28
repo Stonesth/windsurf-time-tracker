@@ -114,16 +114,12 @@ export const authService = {
   },
 
   // User Logout
-  logout: async () => {
-    console.log('Starting logout process');
-    
+  logout: async (): Promise<void> => {
     try {
       await signOut(auth);
-      console.log('Logout successful');
-    } catch (error: any) {
-      console.error('Logout error:', error);
-      const message = getErrorMessage(error);
-      throw new Error(message);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      throw error;
     }
   }
 };
