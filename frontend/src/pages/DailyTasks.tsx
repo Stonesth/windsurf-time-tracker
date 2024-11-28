@@ -25,7 +25,7 @@ import {
   Add as AddIcon, 
   PlayArrow, 
   Stop, 
-  Timer, 
+  Timer as TimerIcon,
   MoreVert as MoreVertIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -74,6 +74,7 @@ const DailyTasks = () => {
     task: '',
     tags: '',
   });
+  const [totalTime, setTotalTime] = useState(0);
 
   // Timer state
   const [timers, setTimers] = useState<{ [key: string]: number }>({});
@@ -165,6 +166,14 @@ const DailyTasks = () => {
     fetchTasks();
   }, [currentUser, selectedDate]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTotalTime(calculateTotalTime());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [todaysTasks]);
+
   const handleStartTimer = async (taskId: string) => {
     try {
       const task = todaysTasks.find(t => t.id === taskId);
@@ -229,17 +238,37 @@ const DailyTasks = () => {
     }
   };
 
-  const formatDuration = (seconds: number): string => {
+  const formatDuration = (seconds: number) => {
+    if (seconds === 0) return '0s';
+    
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = seconds % 60;
-
+    
     const parts = [];
     if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
-    parts.push(`${remainingSeconds}s`);
-
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (remainingSeconds > 0) parts.push(`${remainingSeconds}s`);
+    
     return parts.join(' ');
+  };
+
+  const formatTotalTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const calculateTotalTime = () => {
+    return todaysTasks.reduce((total, task) => {
+      if (task.isRunning) {
+        const currentDuration = Math.floor((Date.now() - task.startTime.getTime()) / 1000);
+        return total + currentDuration;
+      }
+      return total + (task.duration || 0);
+    }, 0);
   };
 
   const handleNewTask = async () => {
@@ -396,6 +425,22 @@ const DailyTasks = () => {
           Tâches du Jour
         </Typography>
         <Box display="flex" alignItems="center" gap={2}>
+          <Box 
+            sx={{ 
+              backgroundColor: 'primary.main',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}
+          >
+            <TimerIcon fontSize="small" />
+            <Typography variant="h6" component="span">
+              {formatTotalTime(totalTime)}
+            </Typography>
+          </Box>
           <Box display="flex" alignItems="center" bgcolor="background.paper" borderRadius={1} boxShadow={1}>
             <IconButton onClick={goToPreviousDay}>
               <ChevronLeftIcon />
@@ -488,7 +533,7 @@ const DailyTasks = () => {
                       </Box>
                     )}
                     <Box display="flex" alignItems="center" gap={1}>
-                      <Timer fontSize="small" color="action" />
+                      <TimerIcon fontSize="small" color="action" />
                       <Typography variant="body2" color="textSecondary">
                         {task.isRunning 
                           ? formatDuration(timers[task.id] || 0)
