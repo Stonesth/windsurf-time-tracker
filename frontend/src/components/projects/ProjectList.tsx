@@ -20,9 +20,14 @@ import { canWrite, canManageProjects } from '../../utils/roleUtils';
 interface Project {
   id: string;
   name: string;
-  description: string;
-  totalTime: number;
-  status: 'active' | 'completed' | 'archived';
+  description?: string;
+  status: 'active' | 'completed' | 'on-hold';
+  deadline: string;
+  totalTime?: number;
+  lastUpdated?: any;
+  createdBy?: string;
+  members?: string[];
+  createdAt?: any;
 }
 
 interface ProjectListProps {
@@ -38,22 +43,25 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onTimeUpdate }) => {
       id: '1',
       name: 'Projet A',
       description: 'Développement frontend',
-      totalTime: 14400, // 4 heures en secondes
       status: 'active',
+      deadline: '2024-03-16T14:30:00.000Z',
+      totalTime: 14400, // 4 heures en secondes
     },
     {
       id: '2',
       name: 'Projet B',
       description: 'Design UI/UX',
-      totalTime: 28800, // 8 heures en secondes
       status: 'active',
+      deadline: '2024-03-16T14:30:00.000Z',
+      totalTime: 28800, // 8 heures en secondes
     },
     {
       id: '3',
       name: 'Projet C',
       description: 'Tests et débogage',
-      totalTime: 7200, // 2 heures en secondes
       status: 'completed',
+      deadline: '2024-03-16T14:30:00.000Z',
+      totalTime: 7200, // 2 heures en secondes
     },
   ];
 
@@ -69,7 +77,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onTimeUpdate }) => {
         return 'success';
       case 'completed':
         return 'primary';
-      case 'archived':
+      case 'on-hold':
         return 'default';
       default:
         return 'default';
@@ -122,13 +130,24 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onTimeUpdate }) => {
                       {project.description}
                     </Typography>
                     <br />
-                    <Typography
-                      component="span"
-                      variant="body2"
-                      color="text.secondary"
-                    >
-                      Temps total: {formatTime(project.totalTime)}
-                    </Typography>
+                    {project.deadline && (
+                      <Typography
+                        component="span"
+                        variant="body2"
+                        color="text.secondary"
+                      >
+                        Date limite: {project.deadline}
+                      </Typography>
+                    )}
+                    {project.totalTime && (
+                      <Typography
+                        component="span"
+                        variant="body2"
+                        color="text.secondary"
+                      >
+                        Temps total: {formatTime(project.totalTime)}
+                      </Typography>
+                    )}
                   </>
                 }
               />

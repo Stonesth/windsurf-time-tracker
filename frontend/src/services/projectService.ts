@@ -1,12 +1,11 @@
 import { apiService } from './apiService';
 
 export interface Project {
-  id: string;
+  id?: string;
   name: string;
   description?: string;
-  createdBy: string;
-  createdAt: Date;
-  updatedAt: Date;
+  color?: string;
+  userId: string;
 }
 
 class ProjectService {
@@ -20,11 +19,11 @@ class ProjectService {
     return await apiService.get<Project>(`${this.baseUrl}/${id}`);
   }
 
-  async createProject(project: Omit<Project, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'>): Promise<Project> {
+  async createProject(project: Omit<Project, 'id'>): Promise<Project> {
     return await apiService.post<Project>(this.baseUrl, project);
   }
 
-  async updateProject(id: string, project: Partial<Omit<Project, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'>>): Promise<Project> {
+  async updateProject(id: string, project: Partial<Omit<Project, 'id'>>): Promise<Project> {
     return await apiService.put<Project>(`${this.baseUrl}/${id}`, project);
   }
 

@@ -38,7 +38,7 @@ import { canWrite, canManageProjects } from '../utils/roleUtils';
 interface Project {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   status: 'active' | 'completed' | 'on-hold';
   deadline: string;
   totalTime?: number;
@@ -46,6 +46,13 @@ interface Project {
   createdBy?: string;
   members?: string[];
   createdAt?: Timestamp;
+}
+
+interface ProjectDialogData {
+  name: string;
+  description: string;
+  status: 'active' | 'completed' | 'on-hold';
+  deadline: string;
 }
 
 const Projects = () => {
@@ -56,7 +63,7 @@ const Projects = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProjectDialogData>({
     name: '',
     description: '',
     status: 'active',
@@ -101,7 +108,7 @@ const Projects = () => {
   useEffect(() => {
     const filtered = projects.filter(project =>
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchQuery.toLowerCase())
+      project.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
     setFilteredProjects(filtered);
   }, [searchQuery, projects]);
@@ -117,7 +124,7 @@ const Projects = () => {
       setEditingProject(project);
       setFormData({
         name: project.name,
-        description: project.description,
+        description: project.description || '',
         status: project.status,
         deadline: project.deadline,
       });
@@ -138,7 +145,8 @@ const Projects = () => {
     setEditingProject(null);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!currentUser) return;
     setFormError('');
 

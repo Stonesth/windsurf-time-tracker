@@ -24,6 +24,8 @@ interface TimeEntry {
   endTime: Date;
   duration: number;
   notes?: string;
+  task?: string;
+  tags?: string[];
   userId: string;
   projectId: string;
 }
@@ -47,70 +49,46 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
     endDate: '',
     endTime: '',
     notes: '',
+    task: '',
+    tags: '',
     projectId: '',
   });
   const [loading, setLoading] = useState(false);
-  const { projects, loading: projectsLoading, error: projectsError } = useProjects();
+  const { projects } = useProjects();
 
   useEffect(() => {
-    if (timeEntry && projects.length > 0) {
+    if (timeEntry) {
       const start = new Date(timeEntry.startTime);
       const end = new Date(timeEntry.endTime);
 
-      // Fonction pour formater l'heure avec les secondes
-      const formatTime = (date: Date) => {
-        return date.toTimeString().slice(0, 8); // HH:mm:ss
-      };
-
-      // Vérifier si le projet existe toujours dans la liste
-      const projectExists = projects.some(p => p.id === timeEntry.projectId);
-      
-      setFormData(prev => {
-        const newStartDate = start.toISOString().split('T')[0];
-        const newStartTime = formatTime(start);
-        const newEndDate = end.toISOString().split('T')[0];
-        const newEndTime = formatTime(end);
-        const newProjectId = projectExists ? timeEntry.projectId : projects[0].id;
-
-        // Ne mettre à jour que si les valeurs sont différentes
-        if (
-          prev.startDate === newStartDate &&
-          prev.startTime === newStartTime &&
-          prev.endDate === newEndDate &&
-          prev.endTime === newEndTime &&
-          prev.notes === timeEntry.notes &&
-          prev.projectId === newProjectId
-        ) {
-          return prev;
-        }
-
-        return {
-          startDate: newStartDate,
-          startTime: newStartTime,
-          endDate: newEndDate,
-          endTime: newEndTime,
-          notes: timeEntry.notes || '',
-          projectId: newProjectId,
-        };
+      setFormData({
+        startDate: start.toISOString().split('T')[0],
+        startTime: start.toTimeString().split(' ')[0].substr(0, 5),
+        endDate: end.toISOString().split('T')[0],
+        endTime: end.toTimeString().split(' ')[0].substr(0, 5),
+        notes: timeEntry.notes || '',
+        task: timeEntry.task || '',
+        tags: timeEntry.tags ? timeEntry.tags.join(', ') : '',
+        projectId: timeEntry.projectId,
       });
     }
-  }, [timeEntry, projects]);
+  }, [timeEntry]);
 
   const handleSave = async () => {
     if (!timeEntry) return;
+    setLoading(true);
 
     try {
-      setLoading(true);
-
-      // Créer des dates complètes avec les secondes
       const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
       const endDateTime = new Date(`${formData.endDate}T${formData.endTime}`);
-
+      
       const timeEntryRef = doc(db, 'timeEntries', timeEntry.id);
       await updateDoc(timeEntryRef, {
         startTime: Timestamp.fromDate(startDateTime),
         endTime: Timestamp.fromDate(endDateTime),
         notes: formData.notes,
+        task: formData.task,
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
         projectId: formData.projectId,
         lastUpdated: Timestamp.now(),
       });
@@ -118,7 +96,7 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
       onUpdate();
       onClose();
     } catch (error) {
-      console.error('Erreur lors de la mise à jour de l\'entrée de temps:', error);
+      console.error('Erreur lors de la mise à jour:', error);
     } finally {
       setLoading(false);
     }
@@ -130,24 +108,15 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Modifier l'entrée de temps</DialogTitle>
       <DialogContent>
-        {projectsLoading ? (
-          <Box display="flex" justifyContent="center" my={3}>
+        {loading ? (
+          <Box display="flex" justifyContent="center" p={3}>
             <CircularProgress />
-          </Box>
-        ) : projectsError ? (
-          <Box display="flex" justifyContent="center" my={3} color="error.main">
-            {projectsError}
-          </Box>
-        ) : projects.length === 0 ? (
-          <Box display="flex" justifyContent="center" my={3}>
-            Aucun projet disponible
           </Box>
         ) : (
           <Stack spacing={2} sx={{ mt: 2 }}>
             <FormControl fullWidth>
-              <InputLabel id="project-select-label">Projet</InputLabel>
+              <InputLabel>Projet</InputLabel>
               <Select
-                labelId="project-select-label"
                 value={formData.projectId}
                 onChange={(e) => setFormData(prev => ({ ...prev, projectId: e.target.value }))}
                 label="Projet"
@@ -159,6 +128,22 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
                 ))}
               </Select>
             </FormControl>
+
+            <TextField
+              fullWidth
+              label="Tâche"
+              value={formData.task}
+              onChange={(e) => setFormData(prev => ({ ...prev, task: e.target.value }))}
+            />
+
+            <TextField
+              fullWidth
+              label="Tags (séparés par des virgules)"
+              value={formData.tags}
+              onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+              helperText="Exemple: important, urgent, bug"
+            />
+
             <Stack direction="row" spacing={2}>
               <TextField
                 label="Date de début"
@@ -177,6 +162,7 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
                 fullWidth
               />
             </Stack>
+
             <Stack direction="row" spacing={2}>
               <TextField
                 label="Date de fin"
@@ -195,26 +181,22 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
                 fullWidth
               />
             </Stack>
+
             <TextField
+              fullWidth
               label="Notes"
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               multiline
               rows={2}
-              fullWidth
             />
           </Stack>
         )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Annuler</Button>
-        <Button 
-          onClick={handleSave} 
-          variant="contained" 
-          color="primary"
-          disabled={loading || projectsLoading}
-        >
-          {loading ? <CircularProgress size={20} /> : 'Enregistrer'}
+        <Button onClick={handleSave} variant="contained" color="primary">
+          Enregistrer
         </Button>
       </DialogActions>
     </Dialog>

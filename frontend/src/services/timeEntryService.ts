@@ -7,6 +7,8 @@ export interface TimeEntry {
   startTime: Date;
   endTime?: Date;
   description: string;
+  task?: string;
+  tags?: string[];
   isRunning: boolean;
 }
 

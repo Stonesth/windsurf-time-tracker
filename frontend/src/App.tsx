@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from '@mui/material/styles';
 import theme from './styles/theme';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ProjectsProvider } from './contexts/ProjectsContext';
 import NavBar from './components/layout/NavBar';
 import Projects from './pages/Projects';
 import Dashboard from './pages/Dashboard';
@@ -35,47 +36,49 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <AuthProvider>
-        <Router>
-          <div className="App">
-            <NavBar />
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/login" element={<LoginForm />} />
-              <Route path="/signup" element={<SignUpForm />} />
-              <Route
-                path="/projects"
-                element={
-                  <ProtectedRoute>
-                    <Projects />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <AdminPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </div>
-        </Router>
+        <ProjectsProvider>
+          <Router>
+            <div className="App">
+              <NavBar />
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/login" element={<LoginForm />} />
+                <Route path="/signup" element={<SignUpForm />} />
+                <Route
+                  path="/projects"
+                  element={
+                    <ProtectedRoute>
+                      <Projects />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </div>
+          </Router>
+        </ProjectsProvider>
       </AuthProvider>
     </ThemeProvider>
   );
