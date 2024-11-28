@@ -46,6 +46,10 @@ interface Project {
   createdBy?: string;
   members?: string[];
   createdAt?: Timestamp;
+  timeEntries?: {
+    task?: string;
+    tags?: string[];
+  }[];
 }
 
 interface ProjectDialogData {
@@ -81,11 +85,33 @@ const Projects = () => {
       const q = query(projectsRef, where('createdBy', '==', currentUser.uid));
       const querySnapshot = await getDocs(q);
       
-      const fetchedProjects: Project[] = [];
-      querySnapshot.forEach((doc) => {
-        fetchedProjects.push({ id: doc.id, ...doc.data() } as Project);
+      // Créer un tableau de promesses pour toutes les requêtes de time entries
+      const projectPromises = querySnapshot.docs.map(async (projectDoc) => {
+        const projectData = projectDoc.data() as Project;
+        
+        // Fetch time entries for this project
+        const timeEntriesRef = collection(db, 'timeEntries');
+        const timeEntriesQuery = query(
+          timeEntriesRef,
+          where('projectId', '==', projectDoc.id),
+          where('userId', '==', currentUser.uid)
+        );
+        const timeEntriesSnapshot = await getDocs(timeEntriesQuery);
+        
+        const timeEntries = timeEntriesSnapshot.docs.map(doc => ({
+          task: doc.data().task,
+          tags: doc.data().tags,
+        }));
+        
+        return {
+          id: projectDoc.id,
+          ...projectData,
+          timeEntries,
+        };
       });
       
+      // Attendre que toutes les requêtes soient terminées
+      const fetchedProjects = await Promise.all(projectPromises);
       setProjects(fetchedProjects);
     } catch (error) {
       console.error('Erreur lors de la récupération des projets:', error);
@@ -106,10 +132,22 @@ const Projects = () => {
   }, [location]);
 
   useEffect(() => {
-    const filtered = projects.filter(project =>
-      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filtered = projects.filter(project => {
+      const searchLower = searchQuery.toLowerCase();
+      
+      // Recherche dans le nom et la description du projet
+      const matchesProject = 
+        project.name.toLowerCase().includes(searchLower) ||
+        (project.description?.toLowerCase().includes(searchLower) || false);
+      
+      // Recherche dans les tâches et tags des entrées de temps
+      const matchesTimeEntries = project.timeEntries?.some(entry =>
+        (entry.task?.toLowerCase().includes(searchLower) || false) ||
+        (entry.tags?.some(tag => tag.toLowerCase().includes(searchLower)) || false)
+      ) || false;
+      
+      return matchesProject || matchesTimeEntries;
+    });
     setFilteredProjects(filtered);
   }, [searchQuery, projects]);
 

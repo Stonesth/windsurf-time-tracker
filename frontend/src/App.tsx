@@ -12,6 +12,7 @@ import SignUpForm from './components/Auth/SignUpForm';
 import { CircularProgress, Box } from '@mui/material';
 import { AdminPage } from './pages/Admin';
 import Profile from './components/Profile/Profile';
+import DailyTasks from './pages/DailyTasks';
 
 // Composant pour protéger les routes
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -56,6 +57,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Projects />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/daily"
+                  element={
+                    <ProtectedRoute>
+                      <DailyTasks />
                     </ProtectedRoute>
                   }
                 />

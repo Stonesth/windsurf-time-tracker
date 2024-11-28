@@ -54,6 +54,9 @@ const NavBar = () => {
           <Button color="inherit" onClick={() => navigate('/projects')}>
             Projets
           </Button>
+          <Button color="inherit" onClick={() => navigate('/daily')}>
+            Tâches du Jour
+          </Button>
           {userRole === UserRole.ADMIN && (
             <Button color="inherit" onClick={() => navigate('/admin')}>
               Administration
