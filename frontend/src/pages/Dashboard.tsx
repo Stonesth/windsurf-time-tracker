@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { formatDuration } from '../utils/timeUtils';
 import { canWrite } from '../utils/roleUtils';
+import { useTranslation } from 'react-i18next';
 
 interface DashboardStats {
   todayTime: number;
@@ -28,6 +29,7 @@ interface DashboardStats {
 
 const Dashboard: React.FC = () => {
   const { currentUser, userRole } = useAuth();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = React.useState(true);
   const [stats, setStats] = React.useState<DashboardStats>({
     todayTime: 0,
@@ -126,84 +128,95 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ my: 4 }}>
-        <Grid container spacing={3}>
-          {/* En-tête */}
-          <Grid item xs={12}>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography variant="h4" component="h1" gutterBottom>
-                Tableau de bord
-              </Typography>
-            </Box>
-          </Grid>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        {t('nav.dashboard')}
+      </Typography>
+      
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h6" gutterBottom>
+              {t('timeTracker.title')}
+            </Typography>
+            {/* <TimeTracker /> */}
+          </Paper>
+        </Grid>
+        
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h6" gutterBottom>
+              {t('timeStats.title')}
+            </Typography>
+            <TimeStats />
+          </Paper>
+        </Grid>
+        
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h6" gutterBottom>
+              {t('timeStats.weeklyReport')}
+            </Typography>
+            <WeeklyReport />
+          </Paper>
+        </Grid>
+        
+        <Grid item xs={12}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Typography color="textSecondary" gutterBottom>
+                    {t('dashboard.todayTime')}
+                  </Typography>
+                  <Typography variant="h5">
+                    {formatDuration(stats.todayTime)}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
 
-          {/* Statistiques rapides */}
-          <Grid item xs={12}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Typography color="textSecondary" gutterBottom>
-                      Temps aujourd'hui
-                    </Typography>
-                    <Typography variant="h5">
-                      {formatDuration(stats.todayTime)}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Typography color="textSecondary" gutterBottom>
+                    {t('dashboard.weekTime')}
+                  </Typography>
+                  <Typography variant="h5">
+                    {formatDuration(stats.weekTime)}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
 
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Typography color="textSecondary" gutterBottom>
-                      Temps cette semaine
-                    </Typography>
-                    <Typography variant="h5">
-                      {formatDuration(stats.weekTime)}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Typography color="textSecondary" gutterBottom>
+                    {t('dashboard.activeProjects')}
+                  </Typography>
+                  <Typography variant="h5">
+                    {stats.activeProjects}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
 
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Typography color="textSecondary" gutterBottom>
-                      Projets actifs
-                    </Typography>
-                    <Typography variant="h5">
-                      {stats.activeProjects}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Typography color="textSecondary" gutterBottom>
-                      Tâches actives
-                    </Typography>
-                    <Typography variant="h5">
-                      {stats.activeTasks}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Typography color="textSecondary" gutterBottom>
+                    {t('dashboard.activeTasks')}
+                  </Typography>
+                  <Typography variant="h5">
+                    {stats.activeTasks}
+                  </Typography>
+                </CardContent>
+              </Card>
             </Grid>
           </Grid>
-
-          {/* Graphiques et statistiques */}
-          <Grid item xs={12}>
-            <TimeStats />
-          </Grid>
-          <Grid item xs={12}>
-            <WeeklyReport />
-          </Grid>
         </Grid>
-      </Box>
+      </Grid>
     </Container>
   );
 };

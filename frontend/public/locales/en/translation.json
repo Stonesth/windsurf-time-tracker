@@ -12,7 +12,8 @@
     "delete": "Delete",
     "loading": "Loading...",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "create": "Create"
   },
   "nav": {
     "home": "Home",
@@ -29,19 +30,79 @@
     "noAccount": "Don't have an account?",
     "haveAccount": "Already have an account?"
   },
+  "dashboard": {
+    "todayTime": "Today's Time",
+    "weekTime": "This Week's Time",
+    "activeProjects": "Active Projects",
+    "activeTasks": "Active Tasks"
+  },
   "projects": {
     "title": "Projects",
     "newProject": "New Project",
-    "projectName": "Project Name",
+    "editProject": "Edit Project",
+    "name": "Project Name",
     "description": "Description",
     "status": "Status",
     "client": "Client",
     "deadline": "Deadline",
-    "active": "Active",
-    "completed": "Completed",
-    "onHold": "On Hold"
+    "totalTime": "Total Time",
+    "searchPlaceholder": "Search projects...",
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "onHold": "On Hold"
+    },
+    "error": {
+      "nameRequired": "Project name is required",
+      "nameAlreadyExists": "A project with this name already exists"
+    },
+    "confirmDelete": "Are you sure you want to delete this project?",
+    "cancel": "Cancel",
+    "create": "Create",
+    "update": "Update",
+    "timeEntries": "Time Entries"
+  },
+  "dailyTasks": {
+    "title": "Daily Tasks",
+    "addTask": "New Task",
+    "editTask": "Edit Task",
+    "taskName": "Task Name",
+    "description": "Description",
+    "priority": "Priority",
+    "status": "Status",
+    "dueDate": "Due Date",
+    "project": "Project",
+    "noProject": "No Project",
+    "duration": "Duration",
+    "entries": "entry(ies)",
+    "entryDetails": "Entry Details",
+    "running": "Running",
+    "edit": "Edit",
+    "delete": "Delete",
+    "noTasks": "No tasks for today",
+    "unknownProject": "Unknown Project",
+    "totalDuration": "Total Duration",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "notes": "Notes",
+    "tags": "Tags",
+    "addTags": "Add tags",
+    "addTagsHelper": "Press Enter to add a new tag",
+    "editEntry": "Edit Entry",
+    "confirmDelete": "Are you sure you want to delete this task?",
+    "priorities": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "statuses": {
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed"
+    }
   },
   "timeTracker": {
+    "title": "Time Tracker",
     "start": "Start",
     "stop": "Stop",
     "pause": "Pause",
@@ -51,6 +112,14 @@
     "duration": "Duration",
     "date": "Date",
     "time": "Time"
+  },
+  "timeStats": {
+    "title": "Statistics",
+    "weeklyReport": "Weekly Report",
+    "totalTime": "Total Time",
+    "averageDaily": "Daily Average",
+    "mostActiveProject": "Most Active Project",
+    "mostProductiveDay": "Most Productive Day"
   },
   "profile": {
     "title": "Profile",
@@ -66,13 +135,5 @@
     "settings": "Settings",
     "roles": "Roles",
     "permissions": "Permissions"
-  },
-  "dailyTasks": {
-    "title": "Daily Tasks",
-    "addTask": "Add Task",
-    "taskName": "Task Name",
-    "priority": "Priority",
-    "status": "Status",
-    "dueDate": "Due Date"
   }
 }

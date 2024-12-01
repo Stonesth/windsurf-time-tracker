@@ -12,6 +12,7 @@ import {
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +20,7 @@ const LoginForm = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +54,7 @@ const LoginForm = () => {
         }}
       >
         <Typography component="h1" variant="h5">
-          Connexion
+          {t('auth.signInTitle')}
         </Typography>
         {error && (
           <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
@@ -65,7 +67,7 @@ const LoginForm = () => {
             required
             fullWidth
             id="email"
-            label="Adresse email"
+            label={t('common.email')}
             name="email"
             autoComplete="email"
             autoFocus
@@ -78,7 +80,7 @@ const LoginForm = () => {
             required
             fullWidth
             name="password"
-            label="Mot de passe"
+            label={t('common.password')}
             type="password"
             id="password"
             autoComplete="current-password"
@@ -96,12 +98,12 @@ const LoginForm = () => {
             {loading ? (
               <CircularProgress size={24} color="inherit" />
             ) : (
-              'Se connecter'
+              t('common.login')
             )}
           </Button>
           <Box sx={{ textAlign: 'center' }}>
             <Link component={RouterLink} to="/signup" variant="body2">
-              Pas encore de compte ? S'inscrire
+              {t('auth.noAccount')} {t('common.signup')}
             </Link>
           </Box>
         </Box>

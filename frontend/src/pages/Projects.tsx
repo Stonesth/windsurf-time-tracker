@@ -34,6 +34,7 @@ import ProjectTimer from '../components/time/ProjectTimer/ProjectTimer';
 import ProjectList from '../components/projects/ProjectList';
 import TimeEntriesList from '../components/time/TimeEntries/TimeEntriesList';
 import { canWrite, canManageProjects } from '../utils/roleUtils';
+import { useTranslation } from 'react-i18next';
 
 interface Project {
   id: string;
@@ -60,6 +61,7 @@ interface ProjectDialogData {
 }
 
 const Projects = () => {
+  const { t } = useTranslation();
   const { currentUser, userRole } = useAuth();
   const location = useLocation();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -190,13 +192,13 @@ const Projects = () => {
 
     // Vérifier si le nom est vide
     if (!formData.name.trim()) {
-      setFormError('Le nom du projet est requis');
+      setFormError(t('projects.error.nameRequired'));
       return;
     }
 
     // Vérifier si le nom est unique
     if (!isProjectNameUnique(formData.name, editingProject?.id)) {
-      setFormError('Un projet avec ce nom existe déjà');
+      setFormError(t('projects.error.nameAlreadyExists'));
       return;
     }
 
@@ -225,7 +227,7 @@ const Projects = () => {
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')) return;
+    if (!window.confirm(t('projects.confirmDelete'))) return;
 
     try {
       await deleteDoc(doc(db, 'projects', projectId));
@@ -264,7 +266,7 @@ const Projects = () => {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Typography variant="h4" component="h1">
-          Projets
+          {t('projects.title')}
         </Typography>
         <Box display="flex" gap={2}>
           <IconButton 
@@ -280,7 +282,7 @@ const Projects = () => {
               startIcon={<AddIcon />}
               onClick={() => handleOpenDialog()}
             >
-              Nouveau Projet
+              {t('projects.newProject')}
             </Button>
           )}
         </Box>
@@ -291,7 +293,7 @@ const Projects = () => {
           <TextField
             fullWidth
             variant="outlined"
-            placeholder="Rechercher un projet..."
+            placeholder={t('projects.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             InputProps={{
@@ -371,7 +373,7 @@ const Projects = () => {
                 <Box mt={2} onClick={(e) => e.stopPropagation()}>
                   <Box mb={2}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Échéance: {new Date(project.deadline).toLocaleDateString()}
+                      {t('projects.deadline')}: {new Date(project.deadline).toLocaleDateString()}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {project.description}
@@ -380,11 +382,16 @@ const Projects = () => {
 
                   <Box mb={2}>
                     <Typography variant="body2" color="text.secondary">
-                      Temps total: {formatTime(project.totalTime || 0)}
+                      {t('projects.totalTime')}: {formatTime(project.totalTime || 0)}
                     </Typography>
                   </Box>
 
-                  <TimeEntriesList projectId={project.id} />
+                  <Box mb={2}>
+                    <Typography variant="h6" component="h3" gutterBottom>
+                      {t('projects.timeEntries')}
+                    </Typography>
+                    <TimeEntriesList projectId={project.id} />
+                  </Box>
                 </Box>
               </Collapse>
             </Paper>
@@ -394,13 +401,13 @@ const Projects = () => {
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {editingProject ? 'Modifier le projet' : 'Nouveau projet'}
+          {editingProject ? t('projects.editProject') : t('projects.newProject')}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
             <TextField
               fullWidth
-              label="Nom du projet"
+              label={t('projects.name')}
               value={formData.name}
               onChange={(e) => {
                 setFormData({ ...formData, name: e.target.value });
@@ -412,7 +419,7 @@ const Projects = () => {
             />
             <TextField
               fullWidth
-              label="Description"
+              label={t('projects.description')}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               margin="normal"
@@ -422,19 +429,19 @@ const Projects = () => {
             <TextField
               fullWidth
               select
-              label="Statut"
+              label={t('projects.status')}
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'completed' | 'on-hold' })}
               margin="normal"
             >
-              <MenuItem value="active">Actif</MenuItem>
-              <MenuItem value="completed">Terminé</MenuItem>
-              <MenuItem value="on-hold">En pause</MenuItem>
+              <MenuItem value="active">{t('projects.status.active')}</MenuItem>
+              <MenuItem value="completed">{t('projects.status.completed')}</MenuItem>
+              <MenuItem value="on-hold">{t('projects.status.onHold')}</MenuItem>
             </TextField>
             <TextField
               fullWidth
               type="date"
-              label="Date d'échéance"
+              label={t('projects.deadline')}
               value={formData.deadline}
               onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
               margin="normal"
@@ -445,9 +452,9 @@ const Projects = () => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Annuler</Button>
+          <Button onClick={handleCloseDialog}>{t('projects.cancel')}</Button>
           <Button onClick={handleSubmit} variant="contained" color="primary">
-            {editingProject ? 'Mettre à jour' : 'Créer'}
+            {editingProject ? t('projects.update') : t('projects.create')}
           </Button>
         </DialogActions>
       </Dialog>

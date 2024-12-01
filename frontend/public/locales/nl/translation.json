@@ -12,39 +12,100 @@
     "delete": "Verwijderen",
     "loading": "Laden...",
     "error": "Fout",
-    "success": "Succes"
+    "success": "Succes",
+    "create": "Aanmaken"
   },
   "nav": {
     "home": "Home",
     "dashboard": "Dashboard",
     "projects": "Projecten",
-    "dailyTasks": "Dagelijkse taken",
+    "dailyTasks": "Dagelijkse Taken",
     "profile": "Profiel",
     "admin": "Beheer"
   },
   "auth": {
-    "signInTitle": "Log in op uw account",
-    "signUpTitle": "Maak een nieuw account aan",
+    "signInTitle": "Log in op je account",
+    "signUpTitle": "Maak een nieuw account",
     "forgotPassword": "Wachtwoord vergeten?",
     "noAccount": "Nog geen account?",
-    "haveAccount": "Heeft u al een account?"
+    "haveAccount": "Heb je al een account?"
+  },
+  "dashboard": {
+    "todayTime": "Tijd Vandaag",
+    "weekTime": "Tijd Deze Week",
+    "activeProjects": "Actieve Projecten",
+    "activeTasks": "Actieve Taken"
   },
   "projects": {
     "title": "Projecten",
     "newProject": "Nieuw Project",
-    "projectName": "Projectnaam",
+    "editProject": "Project Bewerken",
+    "name": "Projectnaam",
     "description": "Beschrijving",
     "status": "Status",
     "client": "Klant",
     "deadline": "Deadline",
-    "active": "Actief",
-    "completed": "Voltooid",
-    "onHold": "In de wacht"
+    "totalTime": "Totale Tijd",
+    "timeEntries": "Tijdregistraties",
+    "searchPlaceholder": "Zoek projecten...",
+    "status": {
+      "active": "Actief",
+      "completed": "Voltooid",
+      "onHold": "In de Wacht"
+    },
+    "error": {
+      "nameRequired": "Projectnaam is verplicht",
+      "nameAlreadyExists": "Er bestaat al een project met deze naam"
+    },
+    "confirmDelete": "Weet je zeker dat je dit project wilt verwijderen?",
+    "cancel": "Annuleren",
+    "create": "Aanmaken",
+    "update": "Bijwerken"
+  },
+  "dailyTasks": {
+    "title": "Dagelijkse Taken",
+    "addTask": "Nieuwe Taak",
+    "editTask": "Taak Bewerken",
+    "taskName": "Taaknaam",
+    "description": "Beschrijving",
+    "priority": "Prioriteit",
+    "status": "Status",
+    "dueDate": "Vervaldatum",
+    "project": "Project",
+    "noProject": "Geen Project",
+    "duration": "Duur",
+    "entries": "invoer(s)",
+    "entryDetails": "Invoerdetails",
+    "running": "Loopt",
+    "edit": "Bewerken",
+    "delete": "Verwijderen",
+    "noTasks": "Geen taken voor vandaag",
+    "unknownProject": "Onbekend Project",
+    "totalDuration": "Totale Duur",
+    "startTime": "Starttijd",
+    "endTime": "Eindtijd",
+    "notes": "Notities",
+    "tags": "Tags",
+    "addTags": "Tags toevoegen",
+    "addTagsHelper": "Druk op Enter om een nieuwe tag toe te voegen",
+    "editEntry": "Invoer Bewerken",
+    "confirmDelete": "Weet je zeker dat je deze taak wilt verwijderen?",
+    "priorities": {
+      "low": "Laag",
+      "medium": "Gemiddeld",
+      "high": "Hoog"
+    },
+    "statuses": {
+      "pending": "In Afwachting",
+      "inProgress": "In Uitvoering",
+      "completed": "Voltooid"
+    }
   },
   "timeTracker": {
+    "title": "Tijdregistratie",
     "start": "Start",
     "stop": "Stop",
-    "pause": "Pauzeren",
+    "pause": "Pauze",
     "resume": "Hervatten",
     "selectProject": "Selecteer Project",
     "description": "Beschrijving",
@@ -52,9 +113,17 @@
     "date": "Datum",
     "time": "Tijd"
   },
+  "timeStats": {
+    "title": "Statistieken",
+    "weeklyReport": "Wekelijks Rapport",
+    "totalTime": "Totale Tijd",
+    "averageDaily": "Dagelijks Gemiddelde",
+    "mostActiveProject": "Meest Actieve Project",
+    "mostProductiveDay": "Meest Productieve Dag"
+  },
   "profile": {
     "title": "Profiel",
-    "personalInfo": "Persoonlijke informatie",
+    "personalInfo": "Persoonlijke Informatie",
     "settings": "Instellingen",
     "name": "Naam",
     "language": "Taal",
@@ -66,13 +135,5 @@
     "settings": "Instellingen",
     "roles": "Rollen",
     "permissions": "Rechten"
-  },
-  "dailyTasks": {
-    "title": "Dagelijkse taken",
-    "addTask": "Taak toevoegen",
-    "taskName": "Taaknaam",
-    "priority": "Prioriteit",
-    "status": "Status",
-    "dueDate": "Vervaldatum"
   }
 }

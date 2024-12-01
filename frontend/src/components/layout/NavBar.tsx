@@ -21,6 +21,8 @@ import { UserRole } from '../../types/user';
 import TotalTimeDisplay from '../timer/TotalTimeDisplay';
 import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from '../LanguageSelector';
 
 const NavBar = () => {
   const navigate = useNavigate();
@@ -29,7 +31,7 @@ const NavBar = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
-  const isAdmin = userRole === UserRole.ADMIN;
+  const { t } = useTranslation();
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -81,7 +83,7 @@ const NavBar = () => {
               marginRight: 4
             }}
           >
-            Time Tracker
+            {t('nav.timeTracker')}
           </Typography>
           {isMobile ? (
             <>
@@ -99,14 +101,14 @@ const NavBar = () => {
                 open={Boolean(mobileMenuAnchor)}
                 onClose={handleClose}
               >
-                <MenuItem onClick={() => navigateTo('/dashboard')}>Dashboard</MenuItem>
-                <MenuItem onClick={() => navigateTo('/projects')}>Projets</MenuItem>
-                <MenuItem onClick={() => navigateTo('/daily')}>Tâches du Jour</MenuItem>
-                {isAdmin && (
-                  <MenuItem onClick={() => navigateTo('/admin')}>Administration</MenuItem>
+                <MenuItem onClick={() => navigateTo('/dashboard')}>{t('nav.dashboard')}</MenuItem>
+                <MenuItem onClick={() => navigateTo('/projects')}>{t('nav.projects')}</MenuItem>
+                <MenuItem onClick={() => navigateTo('/daily')}>{t('nav.dailyTasks')}</MenuItem>
+                {userRole === UserRole.ADMIN && (
+                  <MenuItem onClick={() => navigateTo('/admin')}>{t('nav.admin')}</MenuItem>
                 )}
-                <MenuItem onClick={() => navigateTo('/profile')}>Profile</MenuItem>
-                <MenuItem onClick={handleLogout}>Se déconnecter</MenuItem>
+                <MenuItem onClick={() => navigateTo('/profile')}>{t('nav.profile')}</MenuItem>
+                <MenuItem onClick={handleLogout}>{t('common.logout')}</MenuItem>
               </Menu>
             </>
           ) : (
@@ -117,20 +119,20 @@ const NavBar = () => {
                 to="/dashboard"
                 startIcon={<DashboardIcon />}
               >
-                Dashboard
+                {t('nav.dashboard')}
               </Button>
               <Button color="inherit" component={Link} to="/projects">
-                Projets
+                {t('nav.projects')}
               </Button>
               <Button color="inherit" component={Link} to="/daily">
-                Tâches du Jour
+                {t('nav.dailyTasks')}
               </Button>
             </>
           )}
           {currentUser && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, marginLeft: 'auto' }}>
               <TotalTimeDisplay variant="navbar" />
-              {!isMobile && isAdmin && (
+              {!isMobile && userRole === UserRole.ADMIN && (
                 <Button
                   color="inherit"
                   component={Link}
@@ -142,9 +144,10 @@ const NavBar = () => {
                     }
                   }}
                 >
-                  Administration
+                  {t('nav.admin')}
                 </Button>
               )}
+              <LanguageSelector />
               <IconButton
                 size="large"
                 aria-label="account of current user"
@@ -173,9 +176,9 @@ const NavBar = () => {
             onClose={handleClose}
           >
             <MenuItem component={Link} to="/profile" onClick={handleClose}>
-              Profile
+              {t('nav.profile')}
             </MenuItem>
-            <MenuItem onClick={handleLogout}>Se déconnecter</MenuItem>
+            <MenuItem onClick={handleLogout}>{t('common.logout')}</MenuItem>
           </Menu>
         </Toolbar>
       </AppBar>

@@ -218,10 +218,6 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
   return (
     <Box>
       <Box mb={2}>
-        <Typography variant="h6" gutterBottom>
-          Entrées de temps
-        </Typography>
-        
         <Paper sx={{ p: 2, mb: 2 }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6} md={3}>

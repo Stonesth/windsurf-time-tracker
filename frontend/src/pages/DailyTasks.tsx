@@ -49,6 +49,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
 import fr from 'date-fns/locale/fr';
 import TotalTimeDisplay from '../components/timer/TotalTimeDisplay';
+import { useTranslation } from 'react-i18next';
 
 interface TimeEntry {
   id: string;
@@ -87,6 +88,7 @@ interface EditTimeEntryData {
 }
 
 const DailyTasks = () => {
+  const { t } = useTranslation();
   const { currentUser } = useAuth();
   const { projects } = useProjects();
   const [loading, setLoading] = useState(true);
@@ -458,7 +460,7 @@ const DailyTasks = () => {
   const handleDeleteClick = async () => {
     if (!selectedTask) return;
 
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+    if (window.confirm(t('dailyTasks.confirmDelete'))) {
       try {
         setLoading(true);
         setError(null);
@@ -635,7 +637,7 @@ const DailyTasks = () => {
     >
       <Box display="flex" flexDirection={isMobile ? 'column' : 'row'} justifyContent="space-between" alignItems={isMobile ? 'stretch' : 'center'} mb={4}>
         <Typography variant="h4" component="h1" sx={{ mb: isMobile ? 2 : 0 }}>
-          Tâches du Jour
+          {t('dailyTasks.title')}
         </Typography>
         <Box
           display="flex"
@@ -683,7 +685,7 @@ const DailyTasks = () => {
             onClick={handleNewTask}
             fullWidth={isMobile}
           >
-            Nouvelle Tâche
+            {t('dailyTasks.addTask')}
           </Button>
         </Box>
       </Box>
@@ -695,7 +697,7 @@ const DailyTasks = () => {
       ) : todaysTasks.length === 0 ? (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
           <Typography variant="h6" color="textSecondary">
-            Aucune tâche pour aujourd'hui
+            {t('dailyTasks.noTasks')}
           </Typography>
         </Box>
       ) : (
@@ -729,7 +731,7 @@ const DailyTasks = () => {
                     <Box flex={1}>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="h6" component="h2">
-                          {projects.find(p => p.id === group.projectId)?.name || 'Projet inconnu'}
+                          {projects.find(p => p.id === group.projectId)?.name || t('dailyTasks.unknownProject')}
                         </Typography>
                         <IconButton
                           size="small"
@@ -747,10 +749,10 @@ const DailyTasks = () => {
                       <Box display="flex" alignItems="center" gap={1}>
                         <Timer fontSize="small" color="action" />
                         <Typography variant="body2" color="textSecondary">
-                          Total: {formatDuration(group.totalDuration)}
+                          {t('dailyTasks.totalDuration')}: {formatDuration(group.totalDuration)}
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
-                          ({group.entries.length} entrée{group.entries.length > 1 ? 's' : ''})
+                          ({group.entries.length} {t('dailyTasks.entries')})
                         </Typography>
                       </Box>
                     </Box>
@@ -789,7 +791,7 @@ const DailyTasks = () => {
                   <Collapse in={isExpanded}>
                     <Box mt={2}>
                       <Typography variant="subtitle2" gutterBottom>
-                        Détails des entrées :
+                        {t('dailyTasks.entryDetails')}
                       </Typography>
                       {group.entries.map((entry) => (
                         <Box
@@ -808,10 +810,10 @@ const DailyTasks = () => {
                         >
                           <Box>
                             <Typography variant="body2">
-                              {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : 'En cours'}
+                              {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : t('dailyTasks.running')}
                             </Typography>
                             <Typography variant="body2" color="textSecondary">
-                              Durée: {formatDuration(entry.isRunning ? timers[entry.id] || 0 : entry.duration || 0)}
+                              {t('dailyTasks.duration')}: {formatDuration(entry.isRunning ? timers[entry.id] || 0 : entry.duration || 0)}
                             </Typography>
                           </Box>
                           <Box
@@ -831,7 +833,7 @@ const DailyTasks = () => {
                               variant="outlined"
                               fullWidth={isMobile}
                             >
-                              Modifier
+                              {t('dailyTasks.edit')}
                             </Button>
                             <Button
                               size="small"
@@ -843,7 +845,7 @@ const DailyTasks = () => {
                               color="error"
                               fullWidth={isMobile}
                             >
-                              Supprimer
+                              {t('dailyTasks.delete')}
                             </Button>
                           </Box>
                         </Box>
@@ -864,16 +866,16 @@ const DailyTasks = () => {
         maxWidth="sm"
       >
         <DialogTitle>
-          {selectedTask ? 'Modifier la tâche' : 'Nouvelle tâche'}
+          {selectedTask ? t('dailyTasks.editTask') : t('dailyTasks.addTask')}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <FormControl fullWidth>
-              <InputLabel id="project-select-label">Projet</InputLabel>
+              <InputLabel id="project-select-label">{t('dailyTasks.project')}</InputLabel>
               <Select
                 labelId="project-select-label"
                 value={editTaskData.projectId}
-                label="Projet"
+                label={t('dailyTasks.project')}
                 onChange={(e) => setEditTaskData(prev => ({ ...prev, projectId: e.target.value }))}
               >
                 {projects.map((project) => (
@@ -884,7 +886,7 @@ const DailyTasks = () => {
               </Select>
             </FormControl>
             <TextField
-              label="Description de la tâche"
+              label={t('dailyTasks.taskName')}
               value={editTaskData.task}
               onChange={(e) => setEditTaskData(prev => ({ ...prev, task: e.target.value }))}
               fullWidth
@@ -911,18 +913,20 @@ const DailyTasks = () => {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Tags"
-                  placeholder="Ajouter des tags"
-                  helperText="Appuyez sur Entrée pour ajouter un nouveau tag"
+                  label={t('dailyTasks.tags')}
+                  placeholder={t('dailyTasks.addTags')}
+                  helperText={t('dailyTasks.addTagsHelper')}
                 />
               )}
             />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenEditDialog(false)}>Annuler</Button>
+          <Button onClick={() => setOpenEditDialog(false)}>
+            {t('common.cancel')}
+          </Button>
           <Button onClick={handleEditSubmit} variant="contained">
-            {selectedTask ? 'Modifier' : 'Créer'}
+            {selectedTask ? t('common.save') : t('common.create')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -933,7 +937,9 @@ const DailyTasks = () => {
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>Modifier l'entrée</DialogTitle>
+        <DialogTitle>
+          {t('dailyTasks.editEntry')}
+        </DialogTitle>
         <DialogContent>
           <Box sx={{
             pt: 2,
@@ -942,15 +948,15 @@ const DailyTasks = () => {
             gap: 2
           }}>
             <FormControl fullWidth>
-              <InputLabel id="project-select-label">Projet</InputLabel>
+              <InputLabel id="project-select-label">{t('dailyTasks.project')}</InputLabel>
               <Select
                 labelId="project-select-label"
                 value={editTimeEntryData.projectId}
-                label="Projet"
+                label={t('dailyTasks.project')}
                 onChange={(e) => setEditTimeEntryData(prev => ({ ...prev, projectId: e.target.value }))}
               >
                 <MenuItem value="">
-                  <em>Aucun projet</em>
+                  <em>{t('dailyTasks.noProject')}</em>
                 </MenuItem>
                 {projects.map((project) => (
                   <MenuItem key={project.id} value={project.id}>
@@ -960,7 +966,7 @@ const DailyTasks = () => {
               </Select>
             </FormControl>
             <TextField
-              label="Description"
+              label={t('dailyTasks.taskName')}
               value={editTimeEntryData.task}
               onChange={(e) => setEditTimeEntryData(prev => ({ ...prev, task: e.target.value }))}
               fullWidth
@@ -968,7 +974,7 @@ const DailyTasks = () => {
               rows={2}
             />
             <TextField
-              label="Notes"
+              label={t('dailyTasks.notes')}
               value={editTimeEntryData.notes}
               onChange={(e) => setEditTimeEntryData(prev => ({ ...prev, notes: e.target.value }))}
               fullWidth
@@ -995,9 +1001,9 @@ const DailyTasks = () => {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Tags"
-                  placeholder="Ajouter des tags"
-                  helperText="Appuyez sur Entrée pour ajouter un nouveau tag"
+                  label={t('dailyTasks.tags')}
+                  placeholder={t('dailyTasks.addTags')}
+                  helperText={t('dailyTasks.addTagsHelper')}
                 />
               )}
             />
@@ -1008,7 +1014,7 @@ const DailyTasks = () => {
                 gap: 2
               }}>
                 <TimePicker
-                  label="Heure de début"
+                  label={t('dailyTasks.startTime')}
                   value={editTimeEntryData.startTime}
                   onChange={(newValue) => {
                     if (newValue) {
@@ -1020,7 +1026,7 @@ const DailyTasks = () => {
                   format="HH:mm"
                 />
                 <TimePicker
-                  label="Heure de fin"
+                  label={t('dailyTasks.endTime')}
                   value={editTimeEntryData.endTime}
                   onChange={(newValue) => {
                     setEditTimeEntryData(prev => ({ ...prev, endTime: newValue }));
@@ -1034,9 +1040,11 @@ const DailyTasks = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setOpenEditTimeEntryDialog(false)}>Annuler</Button>
+          <Button onClick={() => setOpenEditTimeEntryDialog(false)}>
+            {t('common.cancel')}
+          </Button>
           <Button onClick={handleEditTimeEntrySubmit} variant="contained">
-            Enregistrer
+            {t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>

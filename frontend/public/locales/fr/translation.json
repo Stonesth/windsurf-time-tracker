@@ -12,7 +12,8 @@
     "delete": "Supprimer",
     "loading": "Chargement...",
     "error": "Erreur",
-    "success": "Succès"
+    "success": "Succès",
+    "create": "Créer"
   },
   "nav": {
     "home": "Accueil",
@@ -29,19 +30,79 @@
     "noAccount": "Vous n'avez pas de compte ?",
     "haveAccount": "Vous avez déjà un compte ?"
   },
+  "dashboard": {
+    "todayTime": "Temps aujourd'hui",
+    "weekTime": "Temps cette semaine",
+    "activeProjects": "Projets actifs",
+    "activeTasks": "Tâches actives"
+  },
   "projects": {
     "title": "Projets",
     "newProject": "Nouveau Projet",
-    "projectName": "Nom du projet",
+    "editProject": "Modifier le projet",
+    "name": "Nom du projet",
     "description": "Description",
     "status": "Statut",
     "client": "Client",
     "deadline": "Date limite",
-    "active": "Actif",
-    "completed": "Terminé",
-    "onHold": "En attente"
+    "totalTime": "Temps total",
+    "searchPlaceholder": "Rechercher un projet...",
+    "status": {
+      "active": "Actif",
+      "completed": "Terminé",
+      "onHold": "En pause"
+    },
+    "error": {
+      "nameRequired": "Le nom du projet est requis",
+      "nameAlreadyExists": "Un projet avec ce nom existe déjà"
+    },
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce projet ?",
+    "cancel": "Annuler",
+    "create": "Créer",
+    "update": "Mettre à jour",
+    "timeEntries": "Entrées de temps"
+  },
+  "dailyTasks": {
+    "title": "Tâches quotidiennes",
+    "addTask": "Nouvelle tâche",
+    "editTask": "Modifier la tâche",
+    "taskName": "Nom de la tâche",
+    "description": "Description",
+    "priority": "Priorité",
+    "status": "Statut",
+    "dueDate": "Date d'échéance",
+    "project": "Projet",
+    "noProject": "Aucun projet",
+    "duration": "Durée",
+    "entries": "entrée(s)",
+    "entryDetails": "Détails des entrées",
+    "running": "En cours",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "noTasks": "Aucune tâche pour aujourd'hui",
+    "unknownProject": "Projet inconnu",
+    "totalDuration": "Durée totale",
+    "startTime": "Heure de début",
+    "endTime": "Heure de fin",
+    "notes": "Notes",
+    "tags": "Tags",
+    "addTags": "Ajouter des tags",
+    "addTagsHelper": "Appuyez sur Entrée pour ajouter un nouveau tag",
+    "editEntry": "Modifier l'entrée",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette tâche ?",
+    "priorities": {
+      "low": "Basse",
+      "medium": "Moyenne",
+      "high": "Haute"
+    },
+    "statuses": {
+      "pending": "En attente",
+      "inProgress": "En cours",
+      "completed": "Terminée"
+    }
   },
   "timeTracker": {
+    "title": "Suivi du temps",
     "start": "Démarrer",
     "stop": "Arrêter",
     "pause": "Pause",
@@ -51,6 +112,14 @@
     "duration": "Durée",
     "date": "Date",
     "time": "Temps"
+  },
+  "timeStats": {
+    "title": "Statistiques",
+    "weeklyReport": "Rapport hebdomadaire",
+    "totalTime": "Temps total",
+    "averageDaily": "Moyenne quotidienne",
+    "mostActiveProject": "Projet le plus actif",
+    "mostProductiveDay": "Jour le plus productif"
   },
   "profile": {
     "title": "Profil",
@@ -66,13 +135,5 @@
     "settings": "Paramètres",
     "roles": "Rôles",
     "permissions": "Permissions"
-  },
-  "dailyTasks": {
-    "title": "Tâches quotidiennes",
-    "addTask": "Ajouter une tâche",
-    "taskName": "Nom de la tâche",
-    "priority": "Priorité",
-    "status": "Statut",
-    "dueDate": "Date d'échéance"
   }
 }
