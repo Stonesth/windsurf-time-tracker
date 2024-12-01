@@ -16,6 +16,7 @@
     "create": "Aanmaken"
   },
   "nav": {
+    "timeTracker": "Tijdregistratie",
     "home": "Home",
     "dashboard": "Dashboard",
     "projects": "Projecten",

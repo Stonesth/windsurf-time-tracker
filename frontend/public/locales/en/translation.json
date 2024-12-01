@@ -16,6 +16,7 @@
     "create": "Create"
   },
   "nav": {
+    "timeTracker": "Time Tracker",
     "home": "Home",
     "dashboard": "Dashboard",
     "projects": "Projects",

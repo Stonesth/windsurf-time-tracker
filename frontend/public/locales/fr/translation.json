@@ -16,6 +16,7 @@
     "create": "Créer"
   },
   "nav": {
+    "timeTracker": "Suivi du Temps",
     "home": "Accueil",
     "dashboard": "Tableau de bord",
     "projects": "Projets",
