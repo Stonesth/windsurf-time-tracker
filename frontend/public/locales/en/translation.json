@@ -1,0 +1,78 @@
+{
+  "common": {
+    "login": "Login",
+    "signup": "Sign Up",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "dailyTasks": "Daily Tasks",
+    "profile": "Profile",
+    "admin": "Admin"
+  },
+  "auth": {
+    "signInTitle": "Sign in to your account",
+    "signUpTitle": "Create a new account",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?"
+  },
+  "projects": {
+    "title": "Projects",
+    "newProject": "New Project",
+    "projectName": "Project Name",
+    "description": "Description",
+    "status": "Status",
+    "client": "Client",
+    "deadline": "Deadline",
+    "active": "Active",
+    "completed": "Completed",
+    "onHold": "On Hold"
+  },
+  "timeTracker": {
+    "start": "Start",
+    "stop": "Stop",
+    "pause": "Pause",
+    "resume": "Resume",
+    "selectProject": "Select Project",
+    "description": "Description",
+    "duration": "Duration",
+    "date": "Date",
+    "time": "Time"
+  },
+  "profile": {
+    "title": "Profile",
+    "personalInfo": "Personal Information",
+    "settings": "Settings",
+    "name": "Name",
+    "language": "Language",
+    "theme": "Theme",
+    "notifications": "Notifications"
+  },
+  "admin": {
+    "users": "Users",
+    "settings": "Settings",
+    "roles": "Roles",
+    "permissions": "Permissions"
+  },
+  "dailyTasks": {
+    "title": "Daily Tasks",
+    "addTask": "Add Task",
+    "taskName": "Task Name",
+    "priority": "Priority",
+    "status": "Status",
+    "dueDate": "Due Date"
+  }
+}

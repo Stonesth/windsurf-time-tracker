@@ -1,0 +1,78 @@
+{
+  "common": {
+    "login": "Connexion",
+    "signup": "S'inscrire",
+    "logout": "Déconnexion",
+    "email": "Email",
+    "password": "Mot de passe",
+    "submit": "Soumettre",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès"
+  },
+  "nav": {
+    "home": "Accueil",
+    "dashboard": "Tableau de bord",
+    "projects": "Projets",
+    "dailyTasks": "Tâches quotidiennes",
+    "profile": "Profil",
+    "admin": "Administration"
+  },
+  "auth": {
+    "signInTitle": "Connectez-vous à votre compte",
+    "signUpTitle": "Créer un nouveau compte",
+    "forgotPassword": "Mot de passe oublié ?",
+    "noAccount": "Vous n'avez pas de compte ?",
+    "haveAccount": "Vous avez déjà un compte ?"
+  },
+  "projects": {
+    "title": "Projets",
+    "newProject": "Nouveau Projet",
+    "projectName": "Nom du projet",
+    "description": "Description",
+    "status": "Statut",
+    "client": "Client",
+    "deadline": "Date limite",
+    "active": "Actif",
+    "completed": "Terminé",
+    "onHold": "En attente"
+  },
+  "timeTracker": {
+    "start": "Démarrer",
+    "stop": "Arrêter",
+    "pause": "Pause",
+    "resume": "Reprendre",
+    "selectProject": "Sélectionner un projet",
+    "description": "Description",
+    "duration": "Durée",
+    "date": "Date",
+    "time": "Temps"
+  },
+  "profile": {
+    "title": "Profil",
+    "personalInfo": "Informations personnelles",
+    "settings": "Paramètres",
+    "name": "Nom",
+    "language": "Langue",
+    "theme": "Thème",
+    "notifications": "Notifications"
+  },
+  "admin": {
+    "users": "Utilisateurs",
+    "settings": "Paramètres",
+    "roles": "Rôles",
+    "permissions": "Permissions"
+  },
+  "dailyTasks": {
+    "title": "Tâches quotidiennes",
+    "addTask": "Ajouter une tâche",
+    "taskName": "Nom de la tâche",
+    "priority": "Priorité",
+    "status": "Statut",
+    "dueDate": "Date d'échéance"
+  }
+}

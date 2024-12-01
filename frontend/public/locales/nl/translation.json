@@ -1,0 +1,78 @@
+{
+  "common": {
+    "login": "Inloggen",
+    "signup": "Registreren",
+    "logout": "Uitloggen",
+    "email": "E-mail",
+    "password": "Wachtwoord",
+    "submit": "Verzenden",
+    "cancel": "Annuleren",
+    "save": "Opslaan",
+    "edit": "Bewerken",
+    "delete": "Verwijderen",
+    "loading": "Laden...",
+    "error": "Fout",
+    "success": "Succes"
+  },
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "projects": "Projecten",
+    "dailyTasks": "Dagelijkse taken",
+    "profile": "Profiel",
+    "admin": "Beheer"
+  },
+  "auth": {
+    "signInTitle": "Log in op uw account",
+    "signUpTitle": "Maak een nieuw account aan",
+    "forgotPassword": "Wachtwoord vergeten?",
+    "noAccount": "Nog geen account?",
+    "haveAccount": "Heeft u al een account?"
+  },
+  "projects": {
+    "title": "Projecten",
+    "newProject": "Nieuw Project",
+    "projectName": "Projectnaam",
+    "description": "Beschrijving",
+    "status": "Status",
+    "client": "Klant",
+    "deadline": "Deadline",
+    "active": "Actief",
+    "completed": "Voltooid",
+    "onHold": "In de wacht"
+  },
+  "timeTracker": {
+    "start": "Start",
+    "stop": "Stop",
+    "pause": "Pauzeren",
+    "resume": "Hervatten",
+    "selectProject": "Selecteer Project",
+    "description": "Beschrijving",
+    "duration": "Duur",
+    "date": "Datum",
+    "time": "Tijd"
+  },
+  "profile": {
+    "title": "Profiel",
+    "personalInfo": "Persoonlijke informatie",
+    "settings": "Instellingen",
+    "name": "Naam",
+    "language": "Taal",
+    "theme": "Thema",
+    "notifications": "Meldingen"
+  },
+  "admin": {
+    "users": "Gebruikers",
+    "settings": "Instellingen",
+    "roles": "Rollen",
+    "permissions": "Rechten"
+  },
+  "dailyTasks": {
+    "title": "Dagelijkse taken",
+    "addTask": "Taak toevoegen",
+    "taskName": "Taaknaam",
+    "priority": "Prioriteit",
+    "status": "Status",
+    "dueDate": "Vervaldatum"
+  }
+}
