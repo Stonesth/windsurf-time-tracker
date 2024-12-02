@@ -21,9 +21,6 @@ import {
   useTheme,
   useMediaQuery,
   Collapse,
-  Select,
-  FormControl,
-  InputLabel,
   Autocomplete,
   Chip
 } from '@mui/material';
@@ -71,6 +68,13 @@ interface NewTaskData {
   tags: string;
 }
 
+interface BulkEditTimeEntryData {
+  projectId?: string;
+  task?: string;
+  notes?: string;
+  tags?: string[];
+}
+
 interface GroupedTimeEntry {
   projectId: string;
   task: string;
@@ -99,6 +103,9 @@ const DailyTasks = () => {
   const [todaysTasks, setTodaysTasks] = useState<TimeEntry[]>([]);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TimeEntry | null>(null);
+  const [openBulkEditDialog, setOpenBulkEditDialog] = useState(false);
+  const [selectedTasks, setSelectedTasks] = useState<TimeEntry[]>([]);
+  const [bulkEditData, setBulkEditData] = useState<BulkEditTimeEntryData>({});
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [editTaskData, setEditTaskData] = useState<NewTaskData>({
@@ -645,6 +652,62 @@ const DailyTasks = () => {
     });
   };
 
+  const handleBulkEdit = (group: GroupedTimeEntry) => {
+    const tasksToEdit = todaysTasks.filter(
+      task => task.projectId === group.projectId && task.task === group.task
+    );
+    setSelectedTasks(tasksToEdit);
+    setBulkEditData({
+      projectId: group.projectId,
+      task: group.task,
+      notes: tasksToEdit[0]?.notes || '',
+      tags: tasksToEdit[0]?.tags || [],
+    });
+    setOpenBulkEditDialog(true);
+  };
+
+  const handleBulkEditSave = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const updates = selectedTasks.map(async (task) => {
+        const taskRef = doc(db, 'timeEntries', task.id);
+        const updateData: Partial<TimeEntry> = {};
+        
+        if (bulkEditData.projectId) updateData.projectId = bulkEditData.projectId;
+        if (bulkEditData.task) updateData.task = bulkEditData.task;
+        if (bulkEditData.notes !== undefined) updateData.notes = bulkEditData.notes;
+        if (bulkEditData.tags) updateData.tags = bulkEditData.tags;
+
+        await updateDoc(taskRef, updateData);
+
+        return {
+          ...task,
+          ...updateData,
+        };
+      });
+
+      const updatedTasks = await Promise.all(updates);
+
+      setTodaysTasks(prev =>
+        prev.map(task => {
+          const updatedTask = updatedTasks.find(u => u.id === task.id);
+          return updatedTask || task;
+        })
+      );
+
+      setOpenBulkEditDialog(false);
+      setBulkEditData({});
+      setSelectedTasks([]);
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour groupée:', error);
+      setError('Impossible de mettre à jour les tâches');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box id="loading-spinner" display="flex" justifyContent="center" p={3}>
@@ -765,75 +828,79 @@ const DailyTasks = () => {
         </Box>
       ) : (
         <Grid id="tasks-grid" container spacing={3}>
-          {groupedTasks.map((group, index) => {
-            const groupKey = `${group.projectId}-${group.task}`;
-            const isExpanded = expandedGroups.has(groupKey);
+          {groupedTasks.map((group) => {
+            const projectName = projects.find(p => p.id === group.projectId)?.name || 'no-project';
+            const sanitizedProjectName = projectName.toLowerCase().replace(/\s+/g, '-');
+            const sanitizedTaskName = (group.task || 'no-task').toLowerCase().replace(/\s+/g, '-');
+            const groupId = `group-${sanitizedProjectName}-${sanitizedTaskName}`;
 
             return (
-              <Grid item xs={12} key={groupKey}>
+              <Grid item xs={12} key={groupId}>
                 <Paper
-                  id={`task-group-${index}`}
+                  id={groupId}
                   sx={{
                     p: 2,
                     display: 'flex',
                     flexDirection: 'column',
                     bgcolor: group.isRunning ? 'action.hover' : 'background.paper',
-                    cursor: 'pointer',
                     '&:hover': {
                       bgcolor: group.isRunning ? 'action.selected' : 'action.hover',
                     },
                   }}
-                  onClick={() => toggleGroupExpansion(groupKey)}
                 >
                   <Box
-                    id="task-group-header"
+                    id={`${groupId}-header`}
                     display="flex"
                     flexDirection={isMobile ? 'column' : 'row'}
                     justifyContent="space-between"
                     alignItems={isMobile ? 'stretch' : 'flex-start'}
                     gap={isMobile ? 2 : 0}
                   >
-                    <Box flex={1}>
+                    <Box 
+                      flex={1} 
+                      onClick={() => toggleGroupExpansion(groupId)}
+                      sx={{ cursor: 'pointer' }}
+                    >
                       <Box display="flex" alignItems="center" gap={1}>
-                        <Typography id={`project-name-${index}`} variant="h6" component="h2">
-                          {projects.find(p => p.id === group.projectId)?.name || t('dailyTasks.unknownProject')}
+                        <Typography id={`${groupId}-project-name`} variant="h6" component="h2">
+                          {projectName}
                         </Typography>
                         <IconButton
-                          id={`expand-button-${index}`}
+                          id={`${groupId}-expand`}
                           size="small"
                           sx={{
-                            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transform: expandedGroups.has(groupId) ? 'rotate(180deg)' : 'rotate(0deg)',
                             transition: 'transform 0.2s'
                           }}
                         >
                           <KeyboardArrowDown />
                         </IconButton>
                       </Box>
-                      <Typography id={`task-name-${index}`} color="textSecondary" gutterBottom>
+                      <Typography id={`${groupId}-task-name`} color="textSecondary" gutterBottom>
                         {group.task}
                       </Typography>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Timer fontSize="small" color="action" />
-                        <Typography id={`duration-${index}`} variant="body2" color="textSecondary">
+                        <Typography id={`${groupId}-duration`} variant="body2" color="textSecondary">
                           {t('dailyTasks.totalDuration')}: {formatDuration(group.totalDuration)}
                         </Typography>
-                        <Typography id={`entries-count-${index}`} variant="body2" color="textSecondary">
+                        <Typography id={`${groupId}-entries-count`} variant="body2" color="textSecondary">
                           ({group.entries.length} {t('dailyTasks.entries')})
                         </Typography>
                       </Box>
                     </Box>
 
                     <Box
-                      onClick={(e) => e.stopPropagation()}
                       sx={{
                         display: 'flex',
                         justifyContent: isMobile ? 'flex-end' : 'flex-start',
-                        width: isMobile ? '100%' : 'auto'
+                        width: isMobile ? '100%' : 'auto',
+                        gap: 1
                       }}
                     >
                       {!group.isRunning ? (
                         <IconButton
-                          id={`start-timer-${index}`}
+                          id={`${groupId}-start`}
                           onClick={() => handleStartTimer(group.entries[0].id)}
                           color="primary"
                         >
@@ -841,7 +908,7 @@ const DailyTasks = () => {
                         </IconButton>
                       ) : (
                         <IconButton
-                          id={`stop-timer-${index}`}
+                          id={`${groupId}-stop`}
                           onClick={() => {
                             const runningEntry = group.entries.find(e => e.isRunning);
                             if (runningEntry) {
@@ -853,74 +920,88 @@ const DailyTasks = () => {
                           <Stop />
                         </IconButton>
                       )}
+                      <Tooltip title={t('dailyTasks.editGroup')}>
+                        <IconButton
+                          onClick={() => handleBulkEdit(group)}
+                          size="small"
+                          id={`${groupId}-bulk-edit`}
+                        >
+                          <MoreVertIcon />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
                   </Box>
 
-                  <Collapse in={isExpanded}>
+                  <Collapse in={expandedGroups.has(groupId)}>
                     <Box mt={2}>
                       <Typography variant="subtitle2" gutterBottom>
                         {t('dailyTasks.entryDetails')}
                       </Typography>
-                      {group.entries.map((entry, entryIndex) => (
-                        <Box
-                          id={`entry-${index}-${entryIndex}`}
-                          key={entry.id}
-                          sx={{
-                            mt: 1,
-                            p: 2,
-                            borderRadius: 1,
-                            bgcolor: 'background.default',
-                            display: 'flex',
-                            flexDirection: isMobile ? 'column' : 'row',
-                            justifyContent: 'space-between',
-                            alignItems: isMobile ? 'stretch' : 'center',
-                            gap: isMobile ? 1 : 0
-                          }}
-                        >
-                          <Box>
-                            <Typography id={`entry-time-${index}-${entryIndex}`} variant="body2">
-                              {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : t('dailyTasks.running')}
-                            </Typography>
-                            <Typography id={`entry-duration-${index}-${entryIndex}`} variant="body2" color="textSecondary">
-                              {t('dailyTasks.duration')}: {formatDuration(entry.isRunning ? timers[entry.id] || 0 : entry.duration || 0)}
-                            </Typography>
-                          </Box>
+                      {group.entries.map((entry) => {
+                        const entryTime = formatTimeToLocale(entry.startTime).replace(':', '-');
+                        const entryId = `${groupId}-entry-${entryTime}`;
+                        
+                        return (
                           <Box
+                            id={entryId}
+                            key={entry.id}
                             sx={{
+                              mt: 1,
+                              p: 2,
+                              borderRadius: 1,
+                              bgcolor: 'background.default',
                               display: 'flex',
-                              justifyContent: isMobile ? 'flex-end' : 'flex-start',
-                              width: isMobile ? '100%' : 'auto',
-                              gap: 1
+                              flexDirection: isMobile ? 'column' : 'row',
+                              justifyContent: 'space-between',
+                              alignItems: isMobile ? 'stretch' : 'center',
+                              gap: isMobile ? 1 : 0
                             }}
                           >
-                            <Button
-                              id={`edit-entry-${index}-${entryIndex}`}
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditEntry(entry);
+                            <Box>
+                              <Typography id={`${entryId}-time`} variant="body2">
+                                {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : t('dailyTasks.running')}
+                              </Typography>
+                              <Typography id={`${entryId}-duration`} variant="body2" color="textSecondary">
+                                {t('dailyTasks.duration')}: {formatDuration(entry.isRunning ? timers[entry.id] || 0 : entry.duration || 0)}
+                              </Typography>
+                            </Box>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                justifyContent: isMobile ? 'flex-end' : 'flex-start',
+                                width: isMobile ? '100%' : 'auto',
+                                gap: 1
                               }}
-                              variant="outlined"
-                              fullWidth={isMobile}
                             >
-                              {t('dailyTasks.edit')}
-                            </Button>
-                            <Button
-                              id={`delete-entry-${index}-${entryIndex}`}
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteTimeEntry(entry.id);
-                              }}
-                              variant="outlined"
-                              color="error"
-                              fullWidth={isMobile}
-                            >
-                              {t('dailyTasks.delete')}
-                            </Button>
+                              <Button
+                                id={`${entryId}-edit`}
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditEntry(entry);
+                                }}
+                                variant="outlined"
+                                fullWidth={isMobile}
+                              >
+                                {t('dailyTasks.edit')}
+                              </Button>
+                              <Button
+                                id={`${entryId}-delete`}
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteTimeEntry(entry.id);
+                                }}
+                                variant="outlined"
+                                color="error"
+                                fullWidth={isMobile}
+                              >
+                                {t('dailyTasks.delete')}
+                              </Button>
+                            </Box>
                           </Box>
-                        </Box>
-                      ))}
+                        );
+                      })}
                     </Box>
                   </Collapse>
                 </Paper>
@@ -929,6 +1010,122 @@ const DailyTasks = () => {
           })}
         </Grid>
       )}
+      <Dialog
+        id="bulk-edit-dialog"
+        open={openBulkEditDialog}
+        onClose={() => setOpenBulkEditDialog(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>{t('dailyTasks.editGroup')}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Autocomplete
+              id="bulk-project-autocomplete"
+              options={projects}
+              getOptionLabel={(option) => {
+                // Handle both string and Project object cases
+                if (typeof option === 'string') return option;
+                return option?.name || '';
+              }}
+              value={bulkEditData.projectId ? 
+                (projects.find(p => p.id === bulkEditData.projectId) || bulkEditData.projectId) 
+                : null
+              }
+              onChange={(_, newValue) => {
+                const projectId = typeof newValue === 'string' ? newValue : newValue?.id || '';
+                setBulkEditData(prev => ({ ...prev, projectId }));
+              }}
+              freeSolo
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label={t('dailyTasks.project')}
+                  placeholder={t('dailyTasks.searchProject')}
+                />
+              )}
+              renderOption={(props, option) => (
+                <Box
+                  component="li"
+                  {...props}
+                  key={option.id}
+                >
+                  {option.name}
+                </Box>
+              )}
+              isOptionEqualToValue={(option, value) => {
+                if (typeof option === 'string' && typeof value === 'string') {
+                  return option === value;
+                }
+                return option?.id === value?.id;
+              }}
+              fullWidth
+              disablePortal
+            />
+
+            <TextField
+              fullWidth
+              label={t('dailyTasks.taskName')}
+              value={bulkEditData.task || ''}
+              onChange={(e) => setBulkEditData(prev => ({ ...prev, task: e.target.value }))}
+            />
+
+            <TextField
+              fullWidth
+              label={t('dailyTasks.notes')}
+              value={bulkEditData.notes || ''}
+              onChange={(e) => setBulkEditData(prev => ({ ...prev, notes: e.target.value }))}
+              multiline
+              rows={4}
+            />
+
+            <Autocomplete
+              id="bulk-tags-autocomplete"
+              multiple
+              freeSolo
+              options={existingTags}
+              value={bulkEditData.tags || []}
+              onChange={(_, newValue) => setBulkEditData(prev => ({ ...prev, tags: newValue }))}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => {
+                  const { key, ...otherProps } = getTagProps({ index });
+                  return (
+                    <Chip
+                      key={`tag-${option}-${index}`}
+                      label={option}
+                      {...otherProps}
+                    />
+                  );
+                })
+              }
+              renderOption={(props, option) => (
+                <Box
+                  component="li"
+                  {...props}
+                  key={`tag-option-${option}`}
+                >
+                  {option}
+                </Box>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label={t('dailyTasks.tags')}
+                  placeholder={t('dailyTasks.addTags')}
+                />
+              )}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenBulkEditDialog(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleBulkEditSave} variant="contained" color="primary">
+            {t('common.save')}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog
         id="edit-dialog"
         open={openEditDialog}
@@ -941,23 +1138,51 @@ const DailyTasks = () => {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <FormControl fullWidth>
-              <InputLabel id="project-select-label">{t('dailyTasks.project')}</InputLabel>
-              <Select
-                labelId="project-select-label"
-                value={editTaskData.projectId}
-                label={t('dailyTasks.project')}
-                onChange={(e) => setEditTaskData(prev => ({ ...prev, projectId: e.target.value }))}
-              >
-                {projects.map((project) => (
-                  <MenuItem key={project.id} value={project.id}>
-                    {project.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              id="edit-project-autocomplete"
+              options={projects}
+              getOptionLabel={(option) => {
+                // Handle both string and Project object cases
+                if (typeof option === 'string') return option;
+                return option?.name || '';
+              }}
+              value={editTaskData.projectId ? 
+                (projects.find(p => p.id === editTaskData.projectId) || editTaskData.projectId) 
+                : null
+              }
+              onChange={(_, newValue) => {
+                const projectId = typeof newValue === 'string' ? newValue : newValue?.id || '';
+                setEditTaskData(prev => ({ ...prev, projectId }));
+              }}
+              freeSolo
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label={t('dailyTasks.project')}
+                  placeholder={t('dailyTasks.searchProject')}
+                />
+              )}
+              renderOption={(props, option) => (
+                <Box
+                  component="li"
+                  {...props}
+                  key={option.id}
+                >
+                  {option.name}
+                </Box>
+              )}
+              isOptionEqualToValue={(option, value) => {
+                if (typeof option === 'string' && typeof value === 'string') {
+                  return option === value;
+                }
+                return option?.id === value?.id;
+              }}
+              fullWidth
+              disablePortal
+            />
+
             <TextField
-              id="task-name-input"
+              fullWidth
               label={t('dailyTasks.taskName')}
               value={editTaskData.task}
               onChange={(e) => setEditTaskData(prev => ({ ...prev, task: e.target.value }))}
@@ -965,8 +1190,9 @@ const DailyTasks = () => {
               multiline
               rows={2}
             />
+
             <Autocomplete
-              id="tags-autocomplete"
+              id="edit-tags-autocomplete"
               multiple
               freeSolo
               options={existingTags || []}
@@ -979,13 +1205,22 @@ const DailyTasks = () => {
                   const { key, ...otherProps } = getTagProps({ index });
                   return (
                     <Chip
-                      key={key}
+                      key={`edit-tag-${option}-${index}`}
                       label={option}
                       {...otherProps}
                     />
                   );
                 })
               }
+              renderOption={(props, option) => (
+                <Box
+                  component="li"
+                  {...props}
+                  key={`edit-tag-option-${option}`}
+                >
+                  {option}
+                </Box>
+              )}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -1006,154 +1241,6 @@ const DailyTasks = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      <Dialog
-        id="entry-dialog"
-        open={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setSelectedEntry(null);
-          setIsNewEntry(true);
-        }}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>
-          {t('dailyTasks.editEntry')}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{
-            pt: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2
-          }}>
-            <FormControl fullWidth>
-              <InputLabel id="project-select-label">{t('dailyTasks.project')}</InputLabel>
-              <Select
-                labelId="project-select-label"
-                value={selectedEntry?.projectId}
-                label={t('dailyTasks.project')}
-                onChange={(e) => setSelectedEntry(prev => ({ ...prev, projectId: e.target.value }))}
-              >
-                <MenuItem value="">
-                  <em>{t('dailyTasks.noProject')}</em>
-                </MenuItem>
-                {projects.map((project) => (
-                  <MenuItem key={project.id} value={project.id}>
-                    {project.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              id="task-name-input"
-              label={t('dailyTasks.taskName')}
-              value={selectedEntry?.task}
-              onChange={(e) => setSelectedEntry(prev => ({ ...prev, task: e.target.value }))}
-              fullWidth
-              multiline
-              rows={2}
-            />
-            <TextField
-              id="notes-input"
-              label={t('dailyTasks.notes')}
-              value={selectedEntry?.notes}
-              onChange={(e) => setSelectedEntry(prev => ({ ...prev, notes: e.target.value }))}
-              fullWidth
-              multiline
-              rows={2}
-            />
-            <Autocomplete
-              id="tags-autocomplete"
-              multiple
-              freeSolo
-              options={existingTags || []}
-              value={selectedEntry?.tags || []}
-              onChange={(_, newValue) => {
-                setSelectedEntry(prev => prev ? ({
-                  ...prev,
-                  tags: newValue
-                }) : null);
-              }}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => {
-                  const { key, ...otherProps } = getTagProps({ index });
-                  return (
-                    <Chip
-                      key={key}
-                      label={option}
-                      size="small"
-                      {...otherProps}
-                    />
-                  );
-                })
-              }
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label={t('dailyTasks.tags')}
-                  placeholder={t('dailyTasks.addTags')}
-                />
-              )}
-            />
-            <LocalizationProvider dateAdapter={AdapterDateFns} locale={fr}>
-              <Box sx={{
-                display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                gap: 2
-              }}>
-                <TimePicker
-                  id="start-time-picker"
-                  label={t('dailyTasks.startTime')}
-                  value={selectedEntry?.startTime}
-                  onChange={(newValue) => {
-                    if (newValue) {
-                      setSelectedEntry(prev => ({ ...prev, startTime: newValue }));
-                    }
-                  }}
-                  sx={{ width: '100%' }}
-                  ampm={false}
-                  format="HH:mm"
-                />
-                <TimePicker
-                  id="end-time-picker"
-                  label={t('dailyTasks.endTime')}
-                  value={selectedEntry?.endTime}
-                  onChange={(newValue) => {
-                    setSelectedEntry(prev => ({ ...prev, endTime: newValue }));
-                  }}
-                  sx={{ width: '100%' }}
-                  ampm={false}
-                  format="HH:mm"
-                />
-              </Box>
-            </LocalizationProvider>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setIsFormOpen(false)}>
-            {t('common.cancel')}
-          </Button>
-          <Button onClick={handleSaveEntry} variant="contained">
-            {t('common.save')}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <TimeEntryForm
-        id="time-entry-form"
-        open={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setSelectedEntry(null);
-          setIsNewEntry(true);
-        }}
-        onSave={handleSaveEntry}
-        initialData={selectedEntry}
-        isEdit={!isNewEntry}
-        existingTags={existingTags}
-      />
     </Container>
   );
 };
