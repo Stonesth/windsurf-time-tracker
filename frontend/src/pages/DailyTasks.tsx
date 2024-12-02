@@ -1064,14 +1064,14 @@ const DailyTasks = () => {
             />
 
             <TextField
-              fullWidth
+              id="bulk-task-name"
               label={t('dailyTasks.taskName')}
               value={bulkEditData.task || ''}
               onChange={(e) => setBulkEditData(prev => ({ ...prev, task: e.target.value }))}
             />
 
             <TextField
-              fullWidth
+              id="bulk-notes"
               label={t('dailyTasks.notes')}
               value={bulkEditData.notes || ''}
               onChange={(e) => setBulkEditData(prev => ({ ...prev, notes: e.target.value }))}
@@ -1080,7 +1080,7 @@ const DailyTasks = () => {
             />
 
             <Autocomplete
-              id="bulk-tags-autocomplete"
+              id="bulk-tags"
               multiple
               freeSolo
               options={existingTags}
@@ -1091,7 +1091,7 @@ const DailyTasks = () => {
                   const { key, ...otherProps } = getTagProps({ index });
                   return (
                     <Chip
-                      key={`tag-${option}-${index}`}
+                      key={`bulk-tag-${option}`}
                       label={option}
                       {...otherProps}
                     />
@@ -1102,7 +1102,7 @@ const DailyTasks = () => {
                 <Box
                   component="li"
                   {...props}
-                  key={`tag-option-${option}`}
+                  key={`bulk-tag-option-${option}`}
                 >
                   {option}
                 </Box>
@@ -1182,17 +1182,16 @@ const DailyTasks = () => {
             />
 
             <TextField
-              fullWidth
+              id="edit-task-name"
               label={t('dailyTasks.taskName')}
               value={editTaskData.task}
               onChange={(e) => setEditTaskData(prev => ({ ...prev, task: e.target.value }))}
-              fullWidth
               multiline
               rows={2}
             />
 
             <Autocomplete
-              id="edit-tags-autocomplete"
+              id="edit-tags"
               multiple
               freeSolo
               options={existingTags || []}
@@ -1205,7 +1204,7 @@ const DailyTasks = () => {
                   const { key, ...otherProps } = getTagProps({ index });
                   return (
                     <Chip
-                      key={`edit-tag-${option}-${index}`}
+                      key={`edit-tag-${option}`}
                       label={option}
                       {...otherProps}
                     />
@@ -1226,7 +1225,6 @@ const DailyTasks = () => {
                   {...params}
                   label={t('dailyTasks.tags')}
                   placeholder={t('dailyTasks.addTags')}
-                  helperText={t('dailyTasks.addTagsHelper')}
                 />
               )}
             />
