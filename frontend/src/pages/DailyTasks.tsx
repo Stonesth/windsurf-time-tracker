@@ -535,6 +535,24 @@ const DailyTasks = () => {
     }
   };
 
+  const handleDeleteTimeEntry = async (timeEntryId: string) => {
+    if (window.confirm(t('dailyTasks.confirmDelete'))) {
+      try {
+        setLoading(true);
+        setError(null);
+
+        await deleteDoc(doc(db, 'timeEntries', timeEntryId));
+        setTodaysTasks(prev => prev.filter(task => task.id !== timeEntryId));
+
+      } catch (error) {
+        console.error('Erreur lors de la suppression de l\'entrée:', error);
+        setError('Impossible de supprimer l\'entrée');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const groupTasks = (tasks: TimeEntry[]): GroupedTimeEntry[] => {
     const groupedMap = tasks.reduce((acc, task) => {
       const key = `${task.projectId}-${task.task}`;
