@@ -13,7 +13,10 @@
     "loading": "Laden...",
     "error": "Fout",
     "success": "Succes",
-    "create": "Aanmaken"
+    "create": "Aanmaken",
+    "all": "Alle",
+    "unknown": "Onbekend",
+    "pressEnter": "Druk op Enter om te zoeken"
   },
   "nav": {
     "timeTracker": "Tijdregistratie",
@@ -66,7 +69,8 @@
   },
   "dailyTasks": {
     "title": "Dagelijkse Taken",
-    "addTask": "Nieuwe Taak",
+    "addTask": "Taak Toevoegen",
+    "addEntry": "Invoer Toevoegen",
     "editTask": "Taak Bewerken",
     "taskName": "Taaknaam",
     "description": "Beschrijving",
@@ -104,30 +108,48 @@
     }
   },
   "taskSearch": {
-    "title": "Taak Zoeken",
-    "searchPlaceholder": "Zoek een taak...",
-    "noResults": "Geen taken gevonden",
-    "totalTime": "Totale Tijd",
+    "title": "Taak zoeken",
+    "searchPlaceholder": "Zoek een taak",
+    "search": "Zoeken",
+    "clear": "Wissen",
     "project": "Project",
     "task": "Taak",
     "date": "Datum",
     "duration": "Duur",
-    "search": "Zoeken",
-    "clear": "Wissen",
     "results": "Resultaten",
-    "loading": "Resultaten laden..."
+    "noResults": "Geen resultaten gevonden",
+    "totalTime": "Totale tijd",
+    "entries": "Invoeren"
   },
   "timeTracker": {
     "title": "Tijdregistratie",
     "start": "Start",
     "stop": "Stop",
-    "pause": "Pauze",
-    "resume": "Hervatten",
-    "selectProject": "Selecteer Project",
-    "description": "Beschrijving",
-    "duration": "Duur",
+    "addManual": "Handmatig Toevoegen",
+    "editEntry": "Bewerk Invoer",
     "date": "Datum",
-    "time": "Tijd"
+    "startTime": "Starttijd",
+    "endTime": "Eindtijd",
+    "duration": "Duur",
+    "project": "Project",
+    "task": "Taak",
+    "notes": "Notities",
+    "tags": "Tags",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "delete": "Verwijderen",
+    "confirmDelete": "Weet u zeker dat u deze invoer wilt verwijderen?",
+    "manualEntry": {
+      "title": "Handmatige Invoer Toevoegen",
+      "success": "Invoer succesvol toegevoegd",
+      "error": "Fout bij toevoegen invoer"
+    },
+    "searchByTask": "Zoeken op taak",
+    "searchByTags": "Zoeken op tags",
+    "startDate": "Startdatum",
+    "endDate": "Einddatum",
+    "entries": "Invoeren",
+    "noTask": "Geen taak"
   },
   "timeStats": {
     "title": "Statistieken",

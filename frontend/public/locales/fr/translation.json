@@ -13,7 +13,10 @@
     "loading": "Chargement...",
     "error": "Erreur",
     "success": "Succès",
-    "create": "Créer"
+    "create": "Créer",
+    "all": "Tous",
+    "unknown": "Inconnu",
+    "pressEnter": "Appuyez sur Entrée pour rechercher"
   },
   "nav": {
     "timeTracker": "Suivi du Temps",
@@ -66,7 +69,8 @@
   },
   "dailyTasks": {
     "title": "Tâches quotidiennes",
-    "addTask": "Nouvelle tâche",
+    "addTask": "Ajouter une tâche",
+    "addEntry": "Ajouter une entrée",
     "editTask": "Modifier la tâche",
     "taskName": "Nom de la tâche",
     "description": "Description",
@@ -104,18 +108,18 @@
     }
   },
   "taskSearch": {
-    "title": "Recherche de Tâches",
-    "searchPlaceholder": "Rechercher une tâche...",
-    "noResults": "Aucune tâche trouvée",
-    "totalTime": "Temps total",
+    "title": "Recherche de tâches",
+    "searchPlaceholder": "Rechercher une tâche",
+    "search": "Rechercher",
+    "clear": "Effacer",
     "project": "Projet",
     "task": "Tâche",
     "date": "Date",
     "duration": "Durée",
-    "search": "Rechercher",
-    "clear": "Effacer",
     "results": "Résultats",
-    "loading": "Chargement des résultats..."
+    "noResults": "Aucun résultat trouvé",
+    "totalTime": "Temps total",
+    "entries": "Entrées"
   },
   "timeTracker": {
     "title": "Suivi du temps",
@@ -127,7 +131,29 @@
     "description": "Description",
     "duration": "Durée",
     "date": "Date",
-    "time": "Temps"
+    "time": "Temps",
+    "addManual": "Ajouter manuellement",
+    "editEntry": "Modifier l'entrée",
+    "startTime": "Heure de début",
+    "endTime": "Heure de fin",
+    "project": "Projet",
+    "task": "Tâche",
+    "notes": "Notes",
+    "tags": "Tags",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette entrée ?",
+    "manualEntry": {
+      "title": "Ajouter une entrée manuelle",
+      "success": "Entrée ajoutée avec succès",
+      "error": "Erreur lors de l'ajout de l'entrée"
+    },
+    "searchByTask": "Rechercher par tâche",
+    "searchByTags": "Rechercher par tags",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "noTask": "Sans tâche"
   },
   "timeStats": {
     "title": "Statistiques",

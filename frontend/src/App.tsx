@@ -90,6 +90,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/daily-tasks"
+                  element={
+                    <ProtectedRoute>
+                      <DailyTasks />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/admin"
                   element={
                     <ProtectedRoute>

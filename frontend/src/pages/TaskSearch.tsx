@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -26,6 +26,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectsContext';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 interface TimeEntry {
   id: string;
@@ -43,17 +44,39 @@ interface SearchParams {
   projectId: string;
 }
 
+interface GroupedTimeEntry {
+  projectId: string;
+  task: string;
+  date: string;
+  totalDuration: number;
+  entries: TimeEntry[];
+}
+
 const TaskSearch = () => {
   const { t } = useTranslation();
   const { currentUser } = useAuth();
   const { projects } = useProjects();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState<TimeEntry[]>([]);
-  const [searchParams, setSearchParams] = useState<SearchParams>({
-    taskName: '',
-    projectId: '',
+  const [searchResults, setSearchResults] = useState<GroupedTimeEntry[]>([]);
+  const [searchParams, setSearchParams] = useState<SearchParams>(() => {
+    const savedSearch = localStorage.getItem('lastTaskSearch');
+    return savedSearch ? JSON.parse(savedSearch) : {
+      taskName: '',
+      projectId: '',
+    };
   });
   const [totalDuration, setTotalDuration] = useState(0);
+
+  useEffect(() => {
+    localStorage.setItem('lastTaskSearch', JSON.stringify(searchParams));
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (searchParams.taskName || searchParams.projectId) {
+      handleSearch();
+    }
+  }, []); // Exécuté une seule fois au montage
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -66,6 +89,14 @@ const TaskSearch = () => {
     if (remainingSeconds > 0) parts.push(`${remainingSeconds}s`);
 
     return parts.join(' ');
+  };
+
+  const formatDateOnly = (date: Date) => {
+    return date.toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
   };
 
   const handleSearch = async () => {
@@ -101,10 +132,35 @@ const TaskSearch = () => {
           return true;
         }) as TimeEntry[];
 
-      // Calculer la durée totale
+      // Grouper les entrées par date, tâche et projet
+      const groupedEntries: { [key: string]: GroupedTimeEntry } = {};
+      entries.forEach(entry => {
+        const dateStr = formatDateOnly(entry.startTime);
+        const taskStr = entry.task?.trim() || t('timeTracker.noTask');
+        const key = `${entry.projectId}-${dateStr}-${taskStr}`;
+
+        if (!groupedEntries[key]) {
+          groupedEntries[key] = {
+            projectId: entry.projectId,
+            task: taskStr,
+            date: dateStr,
+            totalDuration: 0,
+            entries: [],
+          };
+        }
+
+        groupedEntries[key].entries.push(entry);
+        groupedEntries[key].totalDuration += entry.duration || 0;
+      });
+
+      // Convertir l'objet en tableau et trier par date décroissante
+      const groupedArray = Object.values(groupedEntries).sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
       const total = entries.reduce((acc, entry) => acc + (entry.duration || 0), 0);
       setTotalDuration(total);
-      setSearchResults(entries);
+      setSearchResults(groupedArray);
     } catch (error) {
       console.error('Erreur lors de la recherche:', error);
     } finally {
@@ -131,6 +187,19 @@ const TaskSearch = () => {
     });
   };
 
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const handleDateClick = (dateStr: string) => {
+    // Convertir la date du format DD/MM/YYYY au format YYYY-MM-DD
+    const [day, month, year] = dateStr.split('/');
+    const formattedDate = `${year}-${month}-${day}`;
+    navigate(`/daily-tasks?date=${formattedDate}`);
+  };
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" gutterBottom>
@@ -145,6 +214,7 @@ const TaskSearch = () => {
               label={t('taskSearch.searchPlaceholder')}
               value={searchParams.taskName}
               onChange={(e) => setSearchParams({ ...searchParams, taskName: e.target.value })}
+              onKeyPress={handleKeyPress}
             />
           </Grid>
           <Grid item xs={12} md={5}>
@@ -213,22 +283,23 @@ const TaskSearch = () => {
                   <TableCell>{t('taskSearch.task')}</TableCell>
                   <TableCell>{t('taskSearch.date')}</TableCell>
                   <TableCell>{t('taskSearch.duration')}</TableCell>
+                  <TableCell>{t('taskSearch.entries')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {searchResults.map((entry) => (
-                  <TableRow key={entry.id}>
+                {searchResults.map((group, index) => (
+                  <TableRow key={`${group.projectId}-${group.date}-${index}`}>
                     <TableCell>
-                      {projects.find(p => p.id === entry.projectId)?.name || t('common.unknown')}
+                      {projects.find(p => p.id === group.projectId)?.name || t('common.unknown')}
                     </TableCell>
                     <TableCell>
                       <Box>
-                        <Typography variant="body1">{entry.task}</Typography>
-                        {entry.tags && entry.tags.length > 0 && (
+                        <Typography variant="body1">{group.task}</Typography>
+                        {group.entries[0]?.tags && group.entries[0].tags.length > 0 && (
                           <Box display="flex" gap={0.5} mt={0.5}>
-                            {entry.tags.map((tag, index) => (
+                            {group.entries[0].tags?.map((tag, tagIndex) => (
                               <Chip
-                                key={index}
+                                key={`${group.projectId}-${tag}-${tagIndex}`}
                                 label={tag}
                                 size="small"
                                 variant="outlined"
@@ -238,8 +309,20 @@ const TaskSearch = () => {
                         )}
                       </Box>
                     </TableCell>
-                    <TableCell>{formatDate(entry.startTime)}</TableCell>
-                    <TableCell>{formatDuration(entry.duration || 0)}</TableCell>
+                    <TableCell 
+                      onClick={() => handleDateClick(group.date)}
+                      sx={{ 
+                        cursor: 'pointer',
+                        '&:hover': {
+                          textDecoration: 'underline',
+                          color: 'primary.main'
+                        }
+                      }}
+                    >
+                      {group.date}
+                    </TableCell>
+                    <TableCell>{formatDuration(group.totalDuration)}</TableCell>
+                    <TableCell>{group.entries.length}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

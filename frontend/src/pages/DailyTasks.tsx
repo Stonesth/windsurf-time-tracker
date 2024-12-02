@@ -32,7 +32,6 @@ import {
   PlayArrow,
   Stop,
   Timer,
-  Edit as EditIcon,
   KeyboardArrowDown,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
@@ -50,6 +49,8 @@ import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-picker
 import fr from 'date-fns/locale/fr';
 import TotalTimeDisplay from '../components/timer/TotalTimeDisplay';
 import { useTranslation } from 'react-i18next';
+import TimeEntryForm from '../components/timeEntry/TimeEntryForm';
+import { useLocation } from 'react-router-dom';
 
 interface TimeEntry {
   id: string;
@@ -91,6 +92,8 @@ const DailyTasks = () => {
   const { t } = useTranslation();
   const { currentUser } = useAuth();
   const { projects } = useProjects();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [todaysTasks, setTodaysTasks] = useState<TimeEntry[]>([]);
@@ -107,19 +110,21 @@ const DailyTasks = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [timers, setTimers] = useState<{ [key: string]: number }>({});
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [editTimeEntryId, setEditTimeEntryId] = useState<string | null>(null);
-  const [editTimeEntryData, setEditTimeEntryData] = useState<EditTimeEntryData>({
-    startTime: new Date(),
-    endTime: null,
-    task: '',
-    notes: '',
-    tags: [],
-    projectId: ''
-  });
-  const [openEditTimeEntryDialog, setOpenEditTimeEntryDialog] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isNewEntry, setIsNewEntry] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
+  const location = useLocation();
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const dateParam = searchParams.get('date');
+    if (dateParam) {
+      const date = new Date(dateParam);
+      if (!isNaN(date.getTime())) {
+        setSelectedDate(date);
+      }
+    }
+  }, [location.search]);
 
   const formatDuration = (seconds: number) => {
     if (seconds === 0) return '0s';
@@ -166,53 +171,56 @@ const DailyTasks = () => {
     setSelectedDate(new Date());
   };
 
+  const fetchTimeEntries = async () => {
+    if (!currentUser) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const startOfDay = new Date(selectedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(selectedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const q = query(
+        collection(db, 'timeEntries'),
+        where('userId', '==', currentUser.uid),
+        where('startTime', '>=', Timestamp.fromDate(startOfDay)),
+        where('startTime', '<=', Timestamp.fromDate(endOfDay)),
+        orderBy('startTime', 'desc')  // Tri par date décroissante
+      );
+
+      const querySnapshot = await getDocs(q);
+      const entries: TimeEntry[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.startTime) {
+          entries.push({
+            id: doc.id,
+            userId: data.userId,
+            projectId: data.projectId || '',
+            task: data.task || '',
+            startTime: data.startTime.toDate(),
+            endTime: data.endTime ? data.endTime.toDate() : null,
+            duration: data.duration || 0,
+            notes: data.notes || '',
+            tags: data.tags || []
+          });
+        }
+      });
+
+      setTodaysTasks(entries);
+    } catch (err) {
+      console.error('Error fetching time entries:', err);
+      setError(t('dailyTasks.error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchTasks = async () => {
-      if (!currentUser) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const startOfDay = new Date(selectedDate);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const timeEntriesQuery = query(
-          collection(db, 'timeEntries'),
-          where('userId', '==', currentUser.uid),
-          where('startTime', '>=', Timestamp.fromDate(startOfDay)),
-          orderBy('startTime', 'desc'),
-          limit(50)
-        );
-
-        const snapshot = await getDocs(timeEntriesQuery);
-        const tasks = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          startTime: doc.data().startTime.toDate(),
-          endTime: doc.data().endTime?.toDate() || null,
-        })) as TimeEntry[];
-
-        // Filtrer les tâches pour n'avoir que celles du jour sélectionné
-        const endOfDay = new Date(selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
-
-        const filteredTasks = tasks.filter(task => {
-          const taskDate = task.startTime;
-          return taskDate >= startOfDay && taskDate <= endOfDay;
-        });
-
-        setTodaysTasks(filteredTasks);
-      } catch (error) {
-        console.error('Erreur lors de la récupération des tâches:', error);
-        setError('Impossible de charger les tâches. Veuillez réessayer plus tard.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTasks();
-  }, [currentUser, selectedDate]);
+    fetchTimeEntries();
+  }, [selectedDate, currentUser]);
 
   useEffect(() => {
     const intervals: { [key: string]: NodeJS.Timeout } = {};
@@ -478,61 +486,80 @@ const DailyTasks = () => {
     handleMenuClose();
   };
 
-  const handleEditTimeEntry = (entry: TimeEntry) => {
-    setEditTimeEntryId(entry.id);
-    setEditTimeEntryData({
-      startTime: entry.startTime,
-      endTime: entry.endTime,
-      task: entry.task || '',
-      notes: entry.notes || '',
-      tags: entry.tags || [],
-      projectId: entry.projectId
-    });
-    setOpenEditTimeEntryDialog(true);
+  const handleEditEntry = (entry: TimeEntry) => {
+    setSelectedEntry(entry);
+    setIsNewEntry(false);
+    setIsFormOpen(true);
   };
 
-  const handleEditTimeEntrySubmit = async () => {
-    if (!editTimeEntryId) return;
+  const handleSaveEntry = async (entryData: Partial<TimeEntry>) => {
+    if (!currentUser) return;
 
     try {
-      const docRef = doc(db, 'timeEntries', editTimeEntryId);
-      const duration = editTimeEntryData.endTime
-        ? Math.floor((editTimeEntryData.endTime.getTime() - editTimeEntryData.startTime.getTime()) / 1000)
-        : 0;
+      if (isNewEntry) {
+        const newEntry = {
+          userId: currentUser.uid,
+          projectId: entryData.projectId || '',
+          task: entryData.task || '',
+          notes: entryData.notes || '',
+          tags: entryData.tags || [],
+          startTime: Timestamp.fromDate(entryData.startTime!),
+          endTime: entryData.endTime ? Timestamp.fromDate(entryData.endTime) : null,
+          duration: Math.floor(
+            (entryData.endTime!.getTime() - entryData.startTime!.getTime()) / 1000
+          ),
+          isRunning: false,
+        };
 
-      await updateDoc(docRef, {
-        startTime: Timestamp.fromDate(editTimeEntryData.startTime),
-        endTime: editTimeEntryData.endTime ? Timestamp.fromDate(editTimeEntryData.endTime) : null,
-        duration: duration,
-        task: editTimeEntryData.task,
-        notes: editTimeEntryData.notes,
-        tags: editTimeEntryData.tags,
-        projectId: editTimeEntryData.projectId
-      });
+        await addDoc(collection(db, 'timeEntries'), newEntry);
+      } else if (selectedEntry) {
+        const entryRef = doc(db, 'timeEntries', selectedEntry.id);
+        const duration = Math.floor(
+          (entryData.endTime!.getTime() - entryData.startTime!.getTime()) / 1000
+        );
 
-      // Mettre à jour l'état local
-      setTodaysTasks(prev => prev.map(task => {
-        if (task.id === editTimeEntryId) {
-          return {
-            ...task,
-            startTime: editTimeEntryData.startTime,
-            endTime: editTimeEntryData.endTime,
-            duration: duration,
-            task: editTimeEntryData.task,
-            notes: editTimeEntryData.notes,
-            tags: editTimeEntryData.tags,
-            projectId: editTimeEntryData.projectId
-          };
-        }
-        return task;
-      }));
+        await updateDoc(entryRef, {
+          projectId: entryData.projectId,
+          task: entryData.task,
+          notes: entryData.notes || '',
+          tags: entryData.tags || [],
+          startTime: Timestamp.fromDate(entryData.startTime!),
+          endTime: entryData.endTime ? Timestamp.fromDate(entryData.endTime) : null,
+          duration: duration,
+        });
+      }
 
-      setOpenEditTimeEntryDialog(false);
-      fetchExistingTags(); // Mettre à jour la liste des tags
+      setIsFormOpen(false);
+      setSelectedEntry(null);
+      fetchTimeEntries();
     } catch (error) {
-      console.error('Erreur lors de la modification de l\'entrée:', error);
-      setError('Impossible de modifier l\'entrée');
+      console.error('Error saving time entry:', error);
+      setError(t('timeTracker.errors.saveFailed'));
     }
+  };
+
+  const handleAddEntry = () => {
+    // Créer une nouvelle entrée avec la date sélectionnée
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(9, 0, 0, 0); // Par défaut à 9h du matin
+
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(17, 0, 0, 0); // Par défaut à 17h
+
+    setSelectedEntry({
+      id: '',
+      projectId: '',
+      task: '',
+      notes: '',
+      tags: [],
+      userId: '',
+      startTime: startOfDay,
+      endTime: endOfDay,
+      duration: 0,
+      isRunning: false
+    });
+    setIsNewEntry(true);
+    setIsFormOpen(true);
   };
 
   const handleDeleteTimeEntry = async (timeEntryId: string) => {
@@ -705,6 +732,14 @@ const DailyTasks = () => {
           >
             {t('dailyTasks.addTask')}
           </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddEntry}
+            fullWidth={isMobile}
+          >
+            {t('dailyTasks.addEntry')}
+          </Button>
         </Box>
       </Box>
 
@@ -846,7 +881,7 @@ const DailyTasks = () => {
                               size="small"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleEditTimeEntry(entry);
+                                handleEditEntry(entry);
                               }}
                               variant="outlined"
                               fullWidth={isMobile}
@@ -914,7 +949,7 @@ const DailyTasks = () => {
             <Autocomplete
               multiple
               freeSolo
-              options={existingTags}
+              options={existingTags || []}
               value={editTaskData.tags ? editTaskData.tags.split(',').filter(tag => tag.trim() !== '') : []}
               onChange={(_, newValue) => {
                 setEditTaskData(prev => ({ ...prev, tags: newValue.join(', ') }));
@@ -950,8 +985,12 @@ const DailyTasks = () => {
       </Dialog>
 
       <Dialog
-        open={openEditTimeEntryDialog}
-        onClose={() => setOpenEditTimeEntryDialog(false)}
+        open={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setSelectedEntry(null);
+          setExistingTags([]); // Réinitialiser les tags existants
+        }}
         fullWidth
         maxWidth="sm"
       >
@@ -969,9 +1008,9 @@ const DailyTasks = () => {
               <InputLabel id="project-select-label">{t('dailyTasks.project')}</InputLabel>
               <Select
                 labelId="project-select-label"
-                value={editTimeEntryData.projectId}
+                value={selectedEntry?.projectId}
                 label={t('dailyTasks.project')}
-                onChange={(e) => setEditTimeEntryData(prev => ({ ...prev, projectId: e.target.value }))}
+                onChange={(e) => setSelectedEntry(prev => ({ ...prev, projectId: e.target.value }))}
               >
                 <MenuItem value="">
                   <em>{t('dailyTasks.noProject')}</em>
@@ -985,16 +1024,16 @@ const DailyTasks = () => {
             </FormControl>
             <TextField
               label={t('dailyTasks.taskName')}
-              value={editTimeEntryData.task}
-              onChange={(e) => setEditTimeEntryData(prev => ({ ...prev, task: e.target.value }))}
+              value={selectedEntry?.task}
+              onChange={(e) => setSelectedEntry(prev => ({ ...prev, task: e.target.value }))}
               fullWidth
               multiline
               rows={2}
             />
             <TextField
               label={t('dailyTasks.notes')}
-              value={editTimeEntryData.notes}
-              onChange={(e) => setEditTimeEntryData(prev => ({ ...prev, notes: e.target.value }))}
+              value={selectedEntry?.notes}
+              onChange={(e) => setSelectedEntry(prev => ({ ...prev, notes: e.target.value }))}
               fullWidth
               multiline
               rows={2}
@@ -1002,17 +1041,18 @@ const DailyTasks = () => {
             <Autocomplete
               multiple
               freeSolo
-              options={existingTags}
-              value={editTimeEntryData.tags}
+              options={existingTags || []}
+              value={selectedEntry?.tags || []}
               onChange={(_, newValue) => {
-                setEditTimeEntryData(prev => ({ ...prev, tags: newValue }));
+                setSelectedEntry(prev => prev ? ({ ...prev, tags: newValue || [] }) : null);
               }}
               renderTags={(value: readonly string[], getTagProps) =>
-                value.map((option: string, index: number) => (
+                (value || []).map((option: string, index: number) => (
                   <Chip
-                    variant="outlined"
+                    key={index}
                     label={option}
                     {...getTagProps({ index })}
+                    size="small"
                   />
                 ))
               }
@@ -1021,7 +1061,6 @@ const DailyTasks = () => {
                   {...params}
                   label={t('dailyTasks.tags')}
                   placeholder={t('dailyTasks.addTags')}
-                  helperText={t('dailyTasks.addTagsHelper')}
                 />
               )}
             />
@@ -1033,10 +1072,10 @@ const DailyTasks = () => {
               }}>
                 <TimePicker
                   label={t('dailyTasks.startTime')}
-                  value={editTimeEntryData.startTime}
+                  value={selectedEntry?.startTime}
                   onChange={(newValue) => {
                     if (newValue) {
-                      setEditTimeEntryData(prev => ({ ...prev, startTime: newValue }));
+                      setSelectedEntry(prev => ({ ...prev, startTime: newValue }));
                     }
                   }}
                   sx={{ width: '100%' }}
@@ -1045,9 +1084,9 @@ const DailyTasks = () => {
                 />
                 <TimePicker
                   label={t('dailyTasks.endTime')}
-                  value={editTimeEntryData.endTime}
+                  value={selectedEntry?.endTime}
                   onChange={(newValue) => {
-                    setEditTimeEntryData(prev => ({ ...prev, endTime: newValue }));
+                    setSelectedEntry(prev => ({ ...prev, endTime: newValue }));
                   }}
                   sx={{ width: '100%' }}
                   ampm={false}
@@ -1058,14 +1097,25 @@ const DailyTasks = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setOpenEditTimeEntryDialog(false)}>
+          <Button onClick={() => setIsFormOpen(false)}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={handleEditTimeEntrySubmit} variant="contained">
+          <Button onClick={handleSaveEntry} variant="contained">
             {t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>
+
+      <TimeEntryForm
+        open={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setSelectedEntry(null);
+        }}
+        onSave={handleSaveEntry}
+        initialData={selectedEntry}
+        isEdit={!isNewEntry}
+      />
     </Container>
   );
 };
