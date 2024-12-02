@@ -130,7 +130,8 @@ const TaskSearch = () => {
             return entry.task?.toLowerCase().includes(searchParams.taskName.toLowerCase());
           }
           return true;
-        }) as TimeEntry[];
+        })
+        .sort((a, b) => b.startTime.getTime() - a.startTime.getTime()) as TimeEntry[];
 
       // Grouper les entrées par date, tâche et projet
       const groupedEntries: { [key: string]: GroupedTimeEntry } = {};
