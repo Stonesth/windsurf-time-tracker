@@ -211,6 +211,7 @@ const TaskSearch = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={5}>
             <TextField
+              id="task-search-input"
               fullWidth
               label={t('taskSearch.searchPlaceholder')}
               value={searchParams.taskName}
@@ -220,17 +221,19 @@ const TaskSearch = () => {
           </Grid>
           <Grid item xs={12} md={5}>
             <FormControl fullWidth>
-              <InputLabel>{t('taskSearch.project')}</InputLabel>
+              <InputLabel id="project-select-label">{t('taskSearch.project')}</InputLabel>
               <Select
+                id="project-select"
+                labelId="project-select-label"
                 value={searchParams.projectId}
                 label={t('taskSearch.project')}
                 onChange={(e) => setSearchParams({ ...searchParams, projectId: e.target.value })}
               >
-                <MenuItem value="">
+                <MenuItem id="project-select-all" value="">
                   <em>{t('common.all')}</em>
                 </MenuItem>
                 {projects.map((project) => (
-                  <MenuItem key={project.id} value={project.id}>
+                  <MenuItem id={`project-select-${project.id}`} key={project.id} value={project.id}>
                     {project.name}
                   </MenuItem>
                 ))}
@@ -240,6 +243,7 @@ const TaskSearch = () => {
           <Grid item xs={12} md={2}>
             <Box display="flex" gap={1}>
               <Button
+                id="search-button"
                 fullWidth
                 variant="contained"
                 startIcon={<SearchIcon />}
@@ -249,6 +253,7 @@ const TaskSearch = () => {
                 {t('taskSearch.search')}
               </Button>
               <Button
+                id="clear-button"
                 fullWidth
                 variant="outlined"
                 startIcon={<ClearIcon />}
@@ -263,43 +268,44 @@ const TaskSearch = () => {
       </Paper>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" p={3}>
+        <Box id="loading-spinner" display="flex" justifyContent="center" p={3}>
           <CircularProgress />
         </Box>
       ) : searchResults.length > 0 ? (
         <>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">
+            <Typography id="results-count" variant="h6">
               {t('taskSearch.results')} ({searchResults.length})
             </Typography>
-            <Typography variant="h6">
+            <Typography id="total-duration" variant="h6">
               {t('taskSearch.totalTime')}: {formatDuration(totalDuration)}
             </Typography>
           </Box>
-          <TableContainer component={Paper}>
+          <TableContainer id="search-results-table" component={Paper}>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>{t('taskSearch.project')}</TableCell>
-                  <TableCell>{t('taskSearch.task')}</TableCell>
-                  <TableCell>{t('taskSearch.date')}</TableCell>
-                  <TableCell>{t('taskSearch.duration')}</TableCell>
-                  <TableCell>{t('taskSearch.entries')}</TableCell>
+                  <TableCell id="header-project">{t('taskSearch.project')}</TableCell>
+                  <TableCell id="header-task">{t('taskSearch.task')}</TableCell>
+                  <TableCell id="header-date">{t('taskSearch.date')}</TableCell>
+                  <TableCell id="header-duration">{t('taskSearch.duration')}</TableCell>
+                  <TableCell id="header-entries">{t('taskSearch.entries')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {searchResults.map((group, index) => (
-                  <TableRow key={`${group.projectId}-${group.date}-${index}`}>
-                    <TableCell>
+                  <TableRow id={`result-row-${index}`} key={`${group.projectId}-${group.date}-${index}`}>
+                    <TableCell id={`project-cell-${index}`}>
                       {projects.find(p => p.id === group.projectId)?.name || t('common.unknown')}
                     </TableCell>
-                    <TableCell>
+                    <TableCell id={`task-cell-${index}`}>
                       <Box>
                         <Typography variant="body1">{group.task}</Typography>
                         {group.entries[0]?.tags && group.entries[0].tags.length > 0 && (
                           <Box display="flex" gap={0.5} mt={0.5}>
                             {group.entries[0].tags?.map((tag, tagIndex) => (
                               <Chip
+                                id={`tag-${index}-${tagIndex}`}
                                 key={`${group.projectId}-${tag}-${tagIndex}`}
                                 label={tag}
                                 size="small"
@@ -311,6 +317,7 @@ const TaskSearch = () => {
                       </Box>
                     </TableCell>
                     <TableCell 
+                      id={`date-cell-${index}`}
                       onClick={() => handleDateClick(group.date)}
                       sx={{ 
                         cursor: 'pointer',
@@ -322,8 +329,8 @@ const TaskSearch = () => {
                     >
                       {group.date}
                     </TableCell>
-                    <TableCell>{formatDuration(group.totalDuration)}</TableCell>
-                    <TableCell>{group.entries.length}</TableCell>
+                    <TableCell id={`duration-cell-${index}`}>{formatDuration(group.totalDuration)}</TableCell>
+                    <TableCell id={`entries-cell-${index}`}>{group.entries.length}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -331,7 +338,7 @@ const TaskSearch = () => {
           </TableContainer>
         </>
       ) : (
-        <Box display="flex" justifyContent="center" p={3}>
+        <Box id="no-results" display="flex" justifyContent="center" p={3}>
           <Typography variant="h6" color="text.secondary">
             {t('taskSearch.noResults')}
           </Typography>
