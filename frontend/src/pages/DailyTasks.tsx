@@ -675,10 +675,16 @@ const DailyTasks = () => {
         flexDirection: 'column'
       }}
     >
-      <Box id="daily-tasks-header" display="flex" flexDirection={isMobile ? 'column' : 'row'} justifyContent="space-between" alignItems={isMobile ? 'stretch' : 'center'} mb={4}>
-        <Typography id="daily-tasks-title" variant="h4" component="h1" sx={{ mb: isMobile ? 2 : 0 }}>
-          {t('dailyTasks.title')}
-        </Typography>
+      <Box display="flex" flexDirection="column" gap={3}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography id="daily-tasks-title" variant="h4" component="h1">
+            {t('dailyTasks.title')}
+          </Typography>
+        </Box>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <TotalTimeDisplay id="total-time-display" />
+        </Box>
+
         <Box
           id="daily-tasks-actions"
           display="flex"
@@ -686,7 +692,6 @@ const DailyTasks = () => {
           alignItems={isMobile ? 'stretch' : 'center'}
           gap={2}
         >
-          <TotalTimeDisplay id="total-time-display" />
           <Box
             id="date-picker-container"
             display="flex"
@@ -725,6 +730,7 @@ const DailyTasks = () => {
               <HomeIcon />
             </IconButton>
           </Box>
+
           <Button
             id="add-task-button"
             variant="contained"
@@ -734,6 +740,7 @@ const DailyTasks = () => {
           >
             {t('dailyTasks.addTask')}
           </Button>
+
           <Button
             id="add-entry-button"
             variant="contained"
