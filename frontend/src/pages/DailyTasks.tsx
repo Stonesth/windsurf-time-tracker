@@ -182,20 +182,41 @@ const DailyTasks = () => {
       const endOfDay = new Date(selectedDate);
       endOfDay.setHours(23, 59, 59, 999);
 
-      const q = query(
+      // Charger tous les tags existants
+      const allTagsQuery = query(
+        collection(db, 'timeEntries'),
+        where('userId', '==', currentUser.uid)
+      );
+      
+      const allTagsSnapshot = await getDocs(allTagsQuery);
+      const allTags = new Set<string>();
+      
+      allTagsSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.tags && Array.isArray(data.tags)) {
+          data.tags.forEach(tag => allTags.add(tag));
+        }
+      });
+      
+      console.log('Loaded all existing tags:', Array.from(allTags));
+      setExistingTags(Array.from(allTags));
+
+      // Charger les entrées du jour
+      const entriesQuery = query(
         collection(db, 'timeEntries'),
         where('userId', '==', currentUser.uid),
         where('startTime', '>=', Timestamp.fromDate(startOfDay)),
         where('startTime', '<=', Timestamp.fromDate(endOfDay)),
-        orderBy('startTime', 'desc')  // Tri par date décroissante
+        orderBy('startTime', 'desc')
       );
 
-      const querySnapshot = await getDocs(q);
+      const entriesSnapshot = await getDocs(entriesQuery);
       const entries: TimeEntry[] = [];
-      querySnapshot.forEach((doc) => {
+
+      entriesSnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.startTime) {
-          entries.push({
+          const entry = {
             id: doc.id,
             userId: data.userId,
             projectId: data.projectId || '',
@@ -204,8 +225,11 @@ const DailyTasks = () => {
             endTime: data.endTime ? data.endTime.toDate() : null,
             duration: data.duration || 0,
             notes: data.notes || '',
-            tags: data.tags || []
-          });
+            tags: data.tags || [],
+            isRunning: data.isRunning || false
+          };
+          console.log(`Loading entry ${doc.id} with tags:`, entry.tags);
+          entries.push(entry);
         }
       });
 
@@ -456,7 +480,7 @@ const DailyTasks = () => {
       setSelectedTask(null);
       
       // Mettre à jour la liste des tags
-      fetchExistingTags();
+      fetchTimeEntries();
     } catch (error) {
       console.error('Erreur lors de la modification de la tâche:', error);
       setError('Impossible de modifier la tâche');
@@ -487,7 +511,11 @@ const DailyTasks = () => {
   };
 
   const handleEditEntry = (entry: TimeEntry) => {
-    setSelectedEntry(entry);
+    console.log('Editing entry with tags:', entry.tags); // Debug log
+    setSelectedEntry({
+      ...entry,
+      tags: entry.tags || []
+    });
     setIsNewEntry(false);
     setIsFormOpen(true);
   };
@@ -496,42 +524,35 @@ const DailyTasks = () => {
     if (!currentUser) return;
 
     try {
-      if (isNewEntry) {
-        const newEntry = {
-          userId: currentUser.uid,
-          projectId: entryData.projectId || '',
-          task: entryData.task || '',
-          notes: entryData.notes || '',
-          tags: entryData.tags || [],
-          startTime: Timestamp.fromDate(entryData.startTime!),
-          endTime: entryData.endTime ? Timestamp.fromDate(entryData.endTime) : null,
-          duration: Math.floor(
-            (entryData.endTime!.getTime() - entryData.startTime!.getTime()) / 1000
-          ),
-          isRunning: false,
-        };
+      const duration = Math.floor(
+        (entryData.endTime!.getTime() - entryData.startTime!.getTime()) / 1000
+      );
 
-        await addDoc(collection(db, 'timeEntries'), newEntry);
+      const entryToSave = {
+        projectId: entryData.projectId || '',
+        task: entryData.task || '',
+        notes: entryData.notes || '',
+        tags: entryData.tags || [],
+        startTime: Timestamp.fromDate(entryData.startTime!),
+        endTime: entryData.endTime ? Timestamp.fromDate(entryData.endTime) : null,
+        duration: duration,
+        isRunning: false,
+      };
+
+      if (isNewEntry) {
+        await addDoc(collection(db, 'timeEntries'), {
+          ...entryToSave,
+          userId: currentUser.uid,
+        });
       } else if (selectedEntry) {
         const entryRef = doc(db, 'timeEntries', selectedEntry.id);
-        const duration = Math.floor(
-          (entryData.endTime!.getTime() - entryData.startTime!.getTime()) / 1000
-        );
-
-        await updateDoc(entryRef, {
-          projectId: entryData.projectId,
-          task: entryData.task,
-          notes: entryData.notes || '',
-          tags: entryData.tags || [],
-          startTime: Timestamp.fromDate(entryData.startTime!),
-          endTime: entryData.endTime ? Timestamp.fromDate(entryData.endTime) : null,
-          duration: duration,
-        });
+        await updateDoc(entryRef, entryToSave);
       }
 
       setIsFormOpen(false);
       setSelectedEntry(null);
-      fetchTimeEntries();
+      setIsNewEntry(true);
+      await fetchTimeEntries();
     } catch (error) {
       console.error('Error saving time entry:', error);
       setError(t('timeTracker.errors.saveFailed'));
@@ -623,33 +644,6 @@ const DailyTasks = () => {
       return newSet;
     });
   };
-
-  const fetchExistingTags = async () => {
-    if (!currentUser) return;
-
-    try {
-      const timeEntriesQuery = query(
-        collection(db, 'timeEntries'),
-        where('userId', '==', currentUser.uid)
-      );
-
-      const snapshot = await getDocs(timeEntriesQuery);
-      const allTags = new Set<string>();
-      
-      snapshot.docs.forEach(doc => {
-        const tags = doc.data().tags || [];
-        tags.forEach((tag: string) => allTags.add(tag));
-      });
-
-      setExistingTags(Array.from(allTags));
-    } catch (error) {
-      console.error('Erreur lors de la récupération des tags:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchExistingTags();
-  }, [currentUser]);
 
   if (loading) {
     return (
@@ -954,14 +948,17 @@ const DailyTasks = () => {
               onChange={(_, newValue) => {
                 setEditTaskData(prev => ({ ...prev, tags: newValue.join(', ') }));
               }}
-              renderTags={(value: readonly string[], getTagProps) =>
-                value.map((option: string, index: number) => (
-                  <Chip
-                    variant="outlined"
-                    label={option}
-                    {...getTagProps({ index })}
-                  />
-                ))
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => {
+                  const { key, ...otherProps } = getTagProps({ index });
+                  return (
+                    <Chip
+                      key={key}
+                      label={option}
+                      {...otherProps}
+                    />
+                  );
+                })
               }
               renderInput={(params) => (
                 <TextField
@@ -989,7 +986,7 @@ const DailyTasks = () => {
         onClose={() => {
           setIsFormOpen(false);
           setSelectedEntry(null);
-          setExistingTags([]); // Réinitialiser les tags existants
+          setIsNewEntry(true);
         }}
         fullWidth
         maxWidth="sm"
@@ -1044,17 +1041,23 @@ const DailyTasks = () => {
               options={existingTags || []}
               value={selectedEntry?.tags || []}
               onChange={(_, newValue) => {
-                setSelectedEntry(prev => prev ? ({ ...prev, tags: newValue || [] }) : null);
+                setSelectedEntry(prev => prev ? ({
+                  ...prev,
+                  tags: newValue
+                }) : null);
               }}
-              renderTags={(value: readonly string[], getTagProps) =>
-                (value || []).map((option: string, index: number) => (
-                  <Chip
-                    key={index}
-                    label={option}
-                    {...getTagProps({ index })}
-                    size="small"
-                  />
-                ))
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => {
+                  const { key, ...otherProps } = getTagProps({ index });
+                  return (
+                    <Chip
+                      key={key}
+                      label={option}
+                      size="small"
+                      {...otherProps}
+                    />
+                  );
+                })
               }
               renderInput={(params) => (
                 <TextField
@@ -1111,10 +1114,12 @@ const DailyTasks = () => {
         onClose={() => {
           setIsFormOpen(false);
           setSelectedEntry(null);
+          setIsNewEntry(true);
         }}
         onSave={handleSaveEntry}
         initialData={selectedEntry}
         isEdit={!isNewEntry}
+        existingTags={existingTags}
       />
     </Container>
   );

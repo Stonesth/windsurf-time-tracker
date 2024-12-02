@@ -14,6 +14,7 @@ import {
   Chip,
   Stack,
   IconButton,
+  Typography,
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -36,6 +37,7 @@ interface TimeEntryFormProps {
   onSave: (entry: Partial<TimeEntry>) => Promise<void>;
   initialData?: Partial<TimeEntry>;
   isEdit?: boolean;
+  existingTags?: string[];
 }
 
 const TimeEntryForm: React.FC<TimeEntryFormProps> = ({
@@ -44,6 +46,7 @@ const TimeEntryForm: React.FC<TimeEntryFormProps> = ({
   onSave,
   initialData,
   isEdit = false,
+  existingTags = [],
 }) => {
   const { t, i18n } = useTranslation();
   const { projects } = useProjects();
@@ -60,15 +63,18 @@ const TimeEntryForm: React.FC<TimeEntryFormProps> = ({
 
   useEffect(() => {
     if (initialData) {
+      console.log('Setting initial data with tags:', initialData.tags); // Debug log
       setFormData({
         ...initialData,
         startTime: initialData.startTime || new Date(),
         endTime: initialData.endTime || new Date(),
+        tags: initialData.tags || []
       });
     }
   }, [initialData]);
 
   const handleChange = (field: keyof TimeEntry, value: any) => {
+    console.log(`Updating ${field} with value:`, value); // Debug log
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -78,42 +84,53 @@ const TimeEntryForm: React.FC<TimeEntryFormProps> = ({
   const handleAddTag = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter' && newTag.trim()) {
       event.preventDefault();
-      const updatedTags = [...(formData.tags || []), newTag.trim()];
-      setFormData((prev) => ({
+      const tagToAdd = newTag.trim();
+      console.log('Adding new tag:', tagToAdd); // Debug log
+      setFormData(prev => ({
         ...prev,
-        tags: updatedTags,
+        tags: [...(prev.tags || []), tagToAdd]
       }));
       setNewTag('');
     }
   };
 
   const handleDeleteTag = (tagToDelete: string) => {
+    console.log('Deleting tag:', tagToDelete); // Debug log
     const updatedTags = (formData.tags || []).filter((tag) => tag !== tagToDelete);
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      tags: updatedTags,
+      tags: updatedTags
     }));
   };
 
   const handleSubmit = async () => {
-    const duration = Math.floor(
-      ((formData.endTime?.getTime() || 0) - (formData.startTime?.getTime() || 0)) / 1000
-    );
-    
-    await onSave({
-      ...formData,
-      duration,
-    });
-    onClose();
+    try {
+      console.log('Submitting form data with tags:', formData.tags); // Debug log
+      await onSave(formData);
+      onClose();
+    } catch (error) {
+      console.error('Error saving time entry:', error);
+    }
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {isEdit ? t('timeTracker.editEntry') : t('timeTracker.manualEntry.title')}
+        {isEdit ? t('timeTracker.editEntry') : t('timeTracker.newEntry')}
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          sx={{
+            position: 'absolute',
+            right: 8,
+            top: 8,
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
       </DialogTitle>
       <DialogContent>
-        <Stack spacing={3} sx={{ mt: 2 }}>
+        <Stack spacing={2} sx={{ mt: 2 }}>
           <FormControl fullWidth>
             <InputLabel>{t('timeTracker.project')}</InputLabel>
             <Select
@@ -167,19 +184,58 @@ const TimeEntryForm: React.FC<TimeEntryFormProps> = ({
               label={t('timeTracker.tags')}
               value={newTag}
               onChange={(e) => setNewTag(e.target.value)}
-              onKeyPress={handleAddTag}
-              helperText={t('common.pressEnter')}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (newTag.trim()) {
+                    const tagToAdd = newTag.trim();
+                    console.log('Adding new tag:', tagToAdd); // Debug log
+                    setFormData(prev => ({
+                      ...prev,
+                      tags: [...(prev.tags || []), tagToAdd]
+                    }));
+                    setNewTag('');
+                  }
+                }
+              }}
+              placeholder={t('timeTracker.addTag')}
             />
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-              {formData.tags?.map((tag) => (
+              {formData.tags?.map((tag, index) => (
                 <Chip
-                  key={tag}
+                  key={`tag-${index}`}
                   label={tag}
                   onDelete={() => handleDeleteTag(tag)}
                   size="small"
                 />
               ))}
             </Box>
+            {existingTags.length > 0 && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="textSecondary">
+                  {t('timeTracker.existingTags')}:
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
+                  {existingTags
+                    .filter(tag => !formData.tags?.includes(tag))
+                    .map((tag, index) => (
+                      <Chip
+                        key={`existing-tag-${index}`}
+                        label={tag}
+                        size="small"
+                        onClick={() => {
+                          console.log('Adding existing tag:', tag); // Debug log
+                          const updatedTags = [...(formData.tags || []), tag];
+                          setFormData(prev => ({
+                            ...prev,
+                            tags: updatedTags
+                          }));
+                        }}
+                      />
+                    ))}
+                </Box>
+              </Box>
+            )}
           </Box>
         </Stack>
       </DialogContent>
