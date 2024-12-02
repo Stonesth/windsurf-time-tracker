@@ -13,6 +13,7 @@ import {
   AccountCircle,
   Dashboard as DashboardIcon,
   Menu as MenuIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -103,6 +104,7 @@ const NavBar = () => {
               >
                 <MenuItem onClick={() => navigateTo('/dashboard')}>{t('nav.dashboard')}</MenuItem>
                 <MenuItem onClick={() => navigateTo('/projects')}>{t('nav.projects')}</MenuItem>
+                <MenuItem onClick={() => navigateTo('/task-search')}>{t('nav.taskSearch')}</MenuItem>
                 <MenuItem onClick={() => navigateTo('/daily')}>{t('nav.dailyTasks')}</MenuItem>
                 {userRole === UserRole.ADMIN && (
                   <MenuItem onClick={() => navigateTo('/admin')}>{t('nav.admin')}</MenuItem>
@@ -123,6 +125,9 @@ const NavBar = () => {
               </Button>
               <Button color="inherit" component={Link} to="/projects">
                 {t('nav.projects')}
+              </Button>
+              <Button color="inherit" component={Link} to="/task-search">
+                {t('nav.taskSearch')}
               </Button>
               <Button color="inherit" component={Link} to="/daily">
                 {t('nav.dailyTasks')}

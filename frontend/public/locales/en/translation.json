@@ -20,6 +20,7 @@
     "home": "Home",
     "dashboard": "Dashboard",
     "projects": "Projects",
+    "taskSearch": "Task Search",
     "dailyTasks": "Daily Tasks",
     "profile": "Profile",
     "admin": "Admin"
@@ -101,6 +102,20 @@
       "inProgress": "In Progress",
       "completed": "Completed"
     }
+  },
+  "taskSearch": {
+    "title": "Task Search",
+    "searchPlaceholder": "Search for a task...",
+    "noResults": "No tasks found",
+    "totalTime": "Total Time",
+    "project": "Project",
+    "task": "Task",
+    "date": "Date",
+    "duration": "Duration",
+    "search": "Search",
+    "clear": "Clear",
+    "results": "Results",
+    "loading": "Loading results..."
   },
   "timeTracker": {
     "title": "Time Tracker",

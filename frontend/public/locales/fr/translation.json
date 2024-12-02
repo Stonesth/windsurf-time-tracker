@@ -20,6 +20,7 @@
     "home": "Accueil",
     "dashboard": "Tableau de bord",
     "projects": "Projets",
+    "taskSearch": "Recherche de Tâches",
     "dailyTasks": "Tâches quotidiennes",
     "profile": "Profil",
     "admin": "Administration"
@@ -101,6 +102,20 @@
       "inProgress": "En cours",
       "completed": "Terminée"
     }
+  },
+  "taskSearch": {
+    "title": "Recherche de Tâches",
+    "searchPlaceholder": "Rechercher une tâche...",
+    "noResults": "Aucune tâche trouvée",
+    "totalTime": "Temps total",
+    "project": "Projet",
+    "task": "Tâche",
+    "date": "Date",
+    "duration": "Durée",
+    "search": "Rechercher",
+    "clear": "Effacer",
+    "results": "Résultats",
+    "loading": "Chargement des résultats..."
   },
   "timeTracker": {
     "title": "Suivi du temps",

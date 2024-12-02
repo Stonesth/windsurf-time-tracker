@@ -20,6 +20,7 @@
     "home": "Home",
     "dashboard": "Dashboard",
     "projects": "Projecten",
+    "taskSearch": "Taak Zoeken",
     "dailyTasks": "Dagelijkse Taken",
     "profile": "Profiel",
     "admin": "Beheer"
@@ -101,6 +102,20 @@
       "inProgress": "In Uitvoering",
       "completed": "Voltooid"
     }
+  },
+  "taskSearch": {
+    "title": "Taak Zoeken",
+    "searchPlaceholder": "Zoek een taak...",
+    "noResults": "Geen taken gevonden",
+    "totalTime": "Totale Tijd",
+    "project": "Project",
+    "task": "Taak",
+    "date": "Datum",
+    "duration": "Duur",
+    "search": "Zoeken",
+    "clear": "Wissen",
+    "results": "Resultaten",
+    "loading": "Resultaten laden..."
   },
   "timeTracker": {
     "title": "Tijdregistratie",

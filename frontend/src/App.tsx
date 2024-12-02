@@ -8,6 +8,7 @@ import LoginForm from './components/auth/LoginForm';
 import SignUpForm from './components/auth/SignUpForm';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
+import TaskSearch from './pages/TaskSearch';
 import DailyTasks from './pages/DailyTasks';
 import NavBar from './components/layout/NavBar';
 import { CircularProgress, Box } from '@mui/material';
@@ -69,6 +70,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Projects />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/task-search"
+                  element={
+                    <ProtectedRoute>
+                      <TaskSearch />
                     </ProtectedRoute>
                   }
                 />
