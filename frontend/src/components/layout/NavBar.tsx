@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -15,7 +15,7 @@ import {
   Menu as MenuIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/authService';
 import { UserRole } from '../../types/user';
@@ -27,12 +27,19 @@ import LanguageSelector from '../LanguageSelector';
 
 const NavBar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser, userRole } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
   const { t } = useTranslation();
+
+  // Réinitialiser les menus lors des changements de route
+  useEffect(() => {
+    setAnchorEl(null);
+    setMobileMenuAnchor(null);
+  }, [location.pathname]);
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -163,28 +170,30 @@ const NavBar = () => {
               >
                 <AccountCircle />
               </IconButton>
+              {Boolean(anchorEl) && (
+                <Menu
+                  id="menu-appbar"
+                  anchorEl={anchorEl}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  keepMounted
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  open={Boolean(anchorEl)}
+                  onClose={handleClose}
+                >
+                  <MenuItem component={Link} to="/profile" onClick={handleClose}>
+                    {t('nav.profile')}
+                  </MenuItem>
+                  <MenuItem onClick={handleLogout}>{t('common.logout')}</MenuItem>
+                </Menu>
+              )}
             </Box>
           )}
-          <Menu
-            id="menu-appbar"
-            anchorEl={anchorEl}
-            anchorOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            keepMounted
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            open={Boolean(anchorEl)}
-            onClose={handleClose}
-          >
-            <MenuItem component={Link} to="/profile" onClick={handleClose}>
-              {t('nav.profile')}
-            </MenuItem>
-            <MenuItem onClick={handleLogout}>{t('common.logout')}</MenuItem>
-          </Menu>
         </Toolbar>
       </AppBar>
       <Toolbar /> {/* Spacer pour éviter que le contenu ne soit caché derrière la navbar */}
