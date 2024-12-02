@@ -647,7 +647,7 @@ const DailyTasks = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" p={3}>
+      <Box id="loading-spinner" display="flex" justifyContent="center" p={3}>
         <CircularProgress />
       </Box>
     );
@@ -655,7 +655,7 @@ const DailyTasks = () => {
 
   if (error) {
     return (
-      <Box display="flex" justifyContent="center" p={3}>
+      <Box id="error-message" display="flex" justifyContent="center" p={3}>
         <Typography variant="h6" color="textSecondary">
           {error}
         </Typography>
@@ -665,6 +665,7 @@ const DailyTasks = () => {
 
   return (
     <Container
+      id="daily-tasks-container"
       maxWidth="lg"
       sx={{
         mt: 3,
@@ -674,18 +675,20 @@ const DailyTasks = () => {
         flexDirection: 'column'
       }}
     >
-      <Box display="flex" flexDirection={isMobile ? 'column' : 'row'} justifyContent="space-between" alignItems={isMobile ? 'stretch' : 'center'} mb={4}>
-        <Typography variant="h4" component="h1" sx={{ mb: isMobile ? 2 : 0 }}>
+      <Box id="daily-tasks-header" display="flex" flexDirection={isMobile ? 'column' : 'row'} justifyContent="space-between" alignItems={isMobile ? 'stretch' : 'center'} mb={4}>
+        <Typography id="daily-tasks-title" variant="h4" component="h1" sx={{ mb: isMobile ? 2 : 0 }}>
           {t('dailyTasks.title')}
         </Typography>
         <Box
+          id="daily-tasks-actions"
           display="flex"
           flexDirection={isMobile ? 'column' : 'row'}
           alignItems={isMobile ? 'stretch' : 'center'}
           gap={2}
         >
-          <TotalTimeDisplay />
+          <TotalTimeDisplay id="total-time-display" />
           <Box
+            id="date-picker-container"
             display="flex"
             alignItems="center"
             bgcolor="background.paper"
@@ -696,11 +699,13 @@ const DailyTasks = () => {
               justifyContent: isMobile ? 'space-between' : 'flex-start'
             }}
           >
-            <IconButton onClick={handlePreviousDay}>
+            <IconButton id="prev-day-button" onClick={handlePreviousDay}>
               <ChevronLeftIcon />
             </IconButton>
+
             <LocalizationProvider dateAdapter={AdapterDateFns} locale={fr}>
               <DatePicker
+                id="date-picker"
                 value={selectedDate}
                 onChange={(newValue) => {
                   if (newValue) {
@@ -711,14 +716,17 @@ const DailyTasks = () => {
                 sx={{ width: isMobile ? '100%' : 'auto' }}
               />
             </LocalizationProvider>
-            <IconButton onClick={handleNextDay}>
+
+            <IconButton id="next-day-button" onClick={handleNextDay}>
               <ChevronRightIcon />
             </IconButton>
-            <IconButton onClick={() => setSelectedDate(new Date())}>
+
+            <IconButton id="today-button" onClick={() => setSelectedDate(new Date())}>
               <HomeIcon />
             </IconButton>
           </Box>
           <Button
+            id="add-task-button"
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleNewTask}
@@ -727,6 +735,7 @@ const DailyTasks = () => {
             {t('dailyTasks.addTask')}
           </Button>
           <Button
+            id="add-entry-button"
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleAddEntry}
@@ -738,24 +747,25 @@ const DailyTasks = () => {
       </Box>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <Box id="loading-spinner" display="flex" justifyContent="center" alignItems="center" minHeight="200px">
           <CircularProgress />
         </Box>
       ) : todaysTasks.length === 0 ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <Box id="no-tasks-message" display="flex" justifyContent="center" alignItems="center" minHeight="200px">
           <Typography variant="h6" color="textSecondary">
             {t('dailyTasks.noTasks')}
           </Typography>
         </Box>
       ) : (
-        <Grid container spacing={3}>
-          {groupedTasks.map((group) => {
+        <Grid id="tasks-grid" container spacing={3}>
+          {groupedTasks.map((group, index) => {
             const groupKey = `${group.projectId}-${group.task}`;
             const isExpanded = expandedGroups.has(groupKey);
 
             return (
               <Grid item xs={12} key={groupKey}>
                 <Paper
+                  id={`task-group-${index}`}
                   sx={{
                     p: 2,
                     display: 'flex',
@@ -769,6 +779,7 @@ const DailyTasks = () => {
                   onClick={() => toggleGroupExpansion(groupKey)}
                 >
                   <Box
+                    id="task-group-header"
                     display="flex"
                     flexDirection={isMobile ? 'column' : 'row'}
                     justifyContent="space-between"
@@ -777,10 +788,11 @@ const DailyTasks = () => {
                   >
                     <Box flex={1}>
                       <Box display="flex" alignItems="center" gap={1}>
-                        <Typography variant="h6" component="h2">
+                        <Typography id={`project-name-${index}`} variant="h6" component="h2">
                           {projects.find(p => p.id === group.projectId)?.name || t('dailyTasks.unknownProject')}
                         </Typography>
                         <IconButton
+                          id={`expand-button-${index}`}
                           size="small"
                           sx={{
                             transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -790,15 +802,15 @@ const DailyTasks = () => {
                           <KeyboardArrowDown />
                         </IconButton>
                       </Box>
-                      <Typography color="textSecondary" gutterBottom>
+                      <Typography id={`task-name-${index}`} color="textSecondary" gutterBottom>
                         {group.task}
                       </Typography>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Timer fontSize="small" color="action" />
-                        <Typography variant="body2" color="textSecondary">
+                        <Typography id={`duration-${index}`} variant="body2" color="textSecondary">
                           {t('dailyTasks.totalDuration')}: {formatDuration(group.totalDuration)}
                         </Typography>
-                        <Typography variant="body2" color="textSecondary">
+                        <Typography id={`entries-count-${index}`} variant="body2" color="textSecondary">
                           ({group.entries.length} {t('dailyTasks.entries')})
                         </Typography>
                       </Box>
@@ -814,6 +826,7 @@ const DailyTasks = () => {
                     >
                       {!group.isRunning ? (
                         <IconButton
+                          id={`start-timer-${index}`}
                           onClick={() => handleStartTimer(group.entries[0].id)}
                           color="primary"
                         >
@@ -821,6 +834,7 @@ const DailyTasks = () => {
                         </IconButton>
                       ) : (
                         <IconButton
+                          id={`stop-timer-${index}`}
                           onClick={() => {
                             const runningEntry = group.entries.find(e => e.isRunning);
                             if (runningEntry) {
@@ -840,8 +854,9 @@ const DailyTasks = () => {
                       <Typography variant="subtitle2" gutterBottom>
                         {t('dailyTasks.entryDetails')}
                       </Typography>
-                      {group.entries.map((entry) => (
+                      {group.entries.map((entry, entryIndex) => (
                         <Box
+                          id={`entry-${index}-${entryIndex}`}
                           key={entry.id}
                           sx={{
                             mt: 1,
@@ -856,10 +871,10 @@ const DailyTasks = () => {
                           }}
                         >
                           <Box>
-                            <Typography variant="body2">
+                            <Typography id={`entry-time-${index}-${entryIndex}`} variant="body2">
                               {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : t('dailyTasks.running')}
                             </Typography>
-                            <Typography variant="body2" color="textSecondary">
+                            <Typography id={`entry-duration-${index}-${entryIndex}`} variant="body2" color="textSecondary">
                               {t('dailyTasks.duration')}: {formatDuration(entry.isRunning ? timers[entry.id] || 0 : entry.duration || 0)}
                             </Typography>
                           </Box>
@@ -872,6 +887,7 @@ const DailyTasks = () => {
                             }}
                           >
                             <Button
+                              id={`edit-entry-${index}-${entryIndex}`}
                               size="small"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -883,6 +899,7 @@ const DailyTasks = () => {
                               {t('dailyTasks.edit')}
                             </Button>
                             <Button
+                              id={`delete-entry-${index}-${entryIndex}`}
                               size="small"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -905,8 +922,8 @@ const DailyTasks = () => {
           })}
         </Grid>
       )}
-
       <Dialog
+        id="edit-dialog"
         open={openEditDialog}
         onClose={() => setOpenEditDialog(false)}
         fullWidth
@@ -933,6 +950,7 @@ const DailyTasks = () => {
               </Select>
             </FormControl>
             <TextField
+              id="task-name-input"
               label={t('dailyTasks.taskName')}
               value={editTaskData.task}
               onChange={(e) => setEditTaskData(prev => ({ ...prev, task: e.target.value }))}
@@ -941,6 +959,7 @@ const DailyTasks = () => {
               rows={2}
             />
             <Autocomplete
+              id="tags-autocomplete"
               multiple
               freeSolo
               options={existingTags || []}
@@ -982,6 +1001,7 @@ const DailyTasks = () => {
       </Dialog>
 
       <Dialog
+        id="entry-dialog"
         open={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);
@@ -1020,6 +1040,7 @@ const DailyTasks = () => {
               </Select>
             </FormControl>
             <TextField
+              id="task-name-input"
               label={t('dailyTasks.taskName')}
               value={selectedEntry?.task}
               onChange={(e) => setSelectedEntry(prev => ({ ...prev, task: e.target.value }))}
@@ -1028,6 +1049,7 @@ const DailyTasks = () => {
               rows={2}
             />
             <TextField
+              id="notes-input"
               label={t('dailyTasks.notes')}
               value={selectedEntry?.notes}
               onChange={(e) => setSelectedEntry(prev => ({ ...prev, notes: e.target.value }))}
@@ -1036,6 +1058,7 @@ const DailyTasks = () => {
               rows={2}
             />
             <Autocomplete
+              id="tags-autocomplete"
               multiple
               freeSolo
               options={existingTags || []}
@@ -1074,6 +1097,7 @@ const DailyTasks = () => {
                 gap: 2
               }}>
                 <TimePicker
+                  id="start-time-picker"
                   label={t('dailyTasks.startTime')}
                   value={selectedEntry?.startTime}
                   onChange={(newValue) => {
@@ -1086,6 +1110,7 @@ const DailyTasks = () => {
                   format="HH:mm"
                 />
                 <TimePicker
+                  id="end-time-picker"
                   label={t('dailyTasks.endTime')}
                   value={selectedEntry?.endTime}
                   onChange={(newValue) => {
@@ -1110,6 +1135,7 @@ const DailyTasks = () => {
       </Dialog>
 
       <TimeEntryForm
+        id="time-entry-form"
         open={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);
