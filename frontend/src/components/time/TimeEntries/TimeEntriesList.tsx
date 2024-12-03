@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -34,6 +34,7 @@ import EditTimeEntryDialog from './EditTimeEntryDialog';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useFirestoreQueryData } from '../../../hooks/useFirestoreQuery';
 
 interface TimeEntry {
   id: string;
@@ -102,92 +103,98 @@ const TotalTimeDisplay = ({ duration }: { duration: number }) => {
 };
 
 const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
-  const { currentUser } = useAuth();
-  const { projects, loading: projectsLoading } = useProjects();
-  const { t } = useTranslation();
-
-  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
-  const [groupedEntries, setGroupedEntries] = useState<GroupedTimeEntries>({});
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
+  // Hooks d'état
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<SearchFilters>({
     task: '',
     tags: '',
     startDate: '',
-    endDate: '',
+    endDate: ''
   });
 
-  // Fonction pour obtenir le nom du projet
-  const getProjectName = (projectId: string): string => {
-    const project = projects.find(p => p.id === projectId);
-    return project?.name || 'Projet inconnu';
-  };
+  // Hooks de contexte
+  const { currentUser } = useAuth();
+  const { projects } = useProjects();
+  const { t } = useTranslation();
 
-  const fetchTimeEntries = async () => {
-    if (!currentUser) return;
-    setIsRefreshing(true);
-
-    try {
-      const q = query(
-        collection(db, 'timeEntries'),
-        where('projectId', '==', projectId),
-        where('userId', '==', currentUser.uid),
-        orderBy('startTime', 'desc'),
-        limit(100)
-      );
-
-      const snapshot = await getDocs(q);
-      const entries = snapshot.docs
-        .map(doc => {
-          const data = doc.data();
-          if (data.startTime && data.endTime) {
-            return {
-              id: doc.id,
-              ...data,
-              startTime: data.startTime.toDate(),
-              endTime: data.endTime.toDate(),
-              duration: data.duration || (data.endTime.toDate().getTime() - data.startTime.toDate().getTime()) / 1000
-            } as TimeEntry;
-          }
-          return null;
-        })
-        .filter(entry => entry !== null)
-        .sort((a, b) => b!.startTime.getTime() - a!.startTime.getTime()) as TimeEntry[];
-
-      setTimeEntries(entries);
-      setLastRefresh(new Date());
-    } catch (error) {
-      console.error('Erreur lors de la récupération des entrées de temps:', error);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTimeEntries();
+  // Construction de la requête Firestore
+  const q = useMemo(() => {
+    if (!currentUser) return null;
+    return query(
+      collection(db, 'timeEntries'),
+      where('projectId', '==', projectId),
+      where('userId', '==', currentUser.uid),
+      orderBy('startTime', 'desc'),
+      limit(100)
+    );
   }, [currentUser, projectId]);
 
-  useEffect(() => {
-    if (!timeEntries.length) return;
+  // React Query hook
+  const {
+    data: timeEntries,
+    isLoading,
+    refetch,
+    dataUpdatedAt
+  } = useFirestoreQueryData<TimeEntry>(
+    ['timeEntries', currentUser?.uid || '', projectId],
+    q,
+    {
+      enabled: !!currentUser && !!q,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
 
+  // Memoized values
+  const lastRefreshTime = useMemo(() => {
+    return dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString() : '';
+  }, [dataUpdatedAt]);
+
+  const getProjectName = useCallback((projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    return project?.name || 'Projet inconnu';
+  }, [projects]);
+
+  const filteredAndSortedEntries = useMemo(() => {
+    if (!timeEntries) return [];
+    
+    return timeEntries
+      .filter(entry => {
+        if (!entry) return false;
+        
+        const matchesTask = !filters.task || 
+          entry.task.toLowerCase().includes(filters.task.toLowerCase());
+        
+        const matchesTags = !filters.tags || 
+          entry.tags?.some(tag => 
+            tag.toLowerCase().includes(filters.tags.toLowerCase())
+          );
+        
+        const matchesStartDate = !filters.startDate || 
+          entry.startTime >= new Date(filters.startDate);
+        
+        const matchesEndDate = !filters.endDate || 
+          entry.endTime <= new Date(filters.endDate);
+
+        return matchesTask && matchesTags && matchesStartDate && matchesEndDate;
+      })
+      .sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+  }, [timeEntries, filters]);
+
+  const groupedEntries = useMemo(() => {
     const grouped: GroupedTimeEntries = {};
     
-    timeEntries.forEach(entry => {
+    filteredAndSortedEntries.forEach(entry => {
       if (entry.startTime && entry.endTime) {
         const dateStr = formatDate(entry.startTime);
         const taskStr = entry.task?.trim() || 'no-task';
-        const key = `${entry.projectId}-${dateStr}-${taskStr}`;
         
-        if (!grouped[key]) {
-          grouped[key] = {
+        if (!grouped[dateStr]) {
+          grouped[dateStr] = {
             projectId: entry.projectId,
             projectName: getProjectName(entry.projectId),
-            task: entry.task || t('timeTracker.noTask'),
+            task: taskStr,
             totalDuration: 0,
             entries: [],
             isExpanded: false,
@@ -196,27 +203,25 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
         }
         
         const duration = entry.duration || (entry.endTime.getTime() - entry.startTime.getTime()) / 1000;
-        grouped[key].entries.push(entry);
-        grouped[key].totalDuration += duration;
+        grouped[dateStr].entries.push(entry);
+        grouped[dateStr].totalDuration += duration;
       }
     });
 
-    setGroupedEntries(grouped);
-  }, [timeEntries, getProjectName, t]);
+    return grouped;
+  }, [filteredAndSortedEntries, getProjectName]);
 
-  const handleEditClick = (entry: TimeEntry) => {
+  // Callbacks
+  const handleRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  const handleEditClick = useCallback((entry: TimeEntry) => {
     setSelectedEntry(entry);
     setEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleFilterChange = (field: keyof SearchFilters) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters(prev => ({
-      ...prev,
-      [field]: event.target.value
-    }));
-  };
-
-  const toggleGroup = (groupKey: string) => {
+  const toggleGroup = useCallback((groupKey: string) => {
     setExpandedGroups(prev => {
       const next = new Set(prev);
       if (next.has(groupKey)) {
@@ -226,31 +231,22 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
       }
       return next;
     });
-  };
+  }, []);
 
-  const filteredGroups = Object.entries(groupedEntries).filter(([_, group]) => {
-    const matchesTask = !filters.task || 
-      group.task.toLowerCase().includes(filters.task.toLowerCase());
-    
-    const matchesTags = !filters.tags || 
-      group.entries.some(entry => 
-        entry.tags?.some(tag => 
-          tag.toLowerCase().includes(filters.tags.toLowerCase())
-        )
-      );
-    
-    const matchesStartDate = !filters.startDate || 
-      group.entries.some(entry => 
-        new Date(entry.startTime) >= new Date(filters.startDate)
-      );
-    
-    const matchesEndDate = !filters.endDate || 
-      group.entries.some(entry => 
-        new Date(entry.endTime) <= new Date(filters.endDate)
-      );
+  const handleFilterChange = useCallback((filterName: keyof SearchFilters, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterName]: value
+    }));
+  }, []);
 
-    return matchesTask && matchesTags && matchesStartDate && matchesEndDate;
-  });
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -259,15 +255,14 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
           <Grid container spacing={2}>
             <Grid item xs={12} container justifyContent="space-between" alignItems="center" mb={2}>
               <Typography variant="body2" color="text.secondary">
-                {t('timeTracker.lastUpdate')}: {formatDate(lastRefresh)} {formatTime(lastRefresh)}
+                {t('timeTracker.lastUpdate')}: {lastRefreshTime}
               </Typography>
               <Button
                 startIcon={<RefreshIcon />}
-                onClick={fetchTimeEntries}
-                disabled={isRefreshing}
+                onClick={handleRefresh}
                 size="small"
               >
-                {isRefreshing ? t('common.refreshing') : t('common.refresh')}
+                {t('common.refresh')}
               </Button>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
@@ -275,7 +270,7 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
                 fullWidth
                 label={t('timeTracker.searchByTask')}
                 value={filters.task}
-                onChange={handleFilterChange('task')}
+                onChange={(e) => handleFilterChange('task', e.target.value)}
                 size="small"
               />
             </Grid>
@@ -284,7 +279,7 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
                 fullWidth
                 label={t('timeTracker.searchByTags')}
                 value={filters.tags}
-                onChange={handleFilterChange('tags')}
+                onChange={(e) => handleFilterChange('tags', e.target.value)}
                 size="small"
               />
             </Grid>
@@ -294,7 +289,7 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
                 type="date"
                 label={t('timeTracker.startDate')}
                 value={filters.startDate}
-                onChange={handleFilterChange('startDate')}
+                onChange={(e) => handleFilterChange('startDate', e.target.value)}
                 InputLabelProps={{ shrink: true }}
                 size="small"
               />
@@ -305,7 +300,7 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
                 type="date"
                 label={t('timeTracker.endDate')}
                 value={filters.endDate}
-                onChange={handleFilterChange('endDate')}
+                onChange={(e) => handleFilterChange('endDate', e.target.value)}
                 InputLabelProps={{ shrink: true }}
                 size="small"
               />
@@ -314,109 +309,105 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
         </Paper>
       </Box>
 
-      {loading ? (
-        <CircularProgress />
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>{t('timeTracker.project')}</TableCell>
-                <TableCell>{t('timeTracker.task')}</TableCell>
-                <TableCell>{t('timeTracker.duration')}</TableCell>
-                <TableCell>{t('timeTracker.entries')}</TableCell>
-                <TableCell>{t('common.actions')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredGroups
-                .sort(([keyA, groupA], [keyB, groupB]) => groupB.date.getTime() - groupA.date.getTime())
-                .map(([key, group]) => (
-                  <React.Fragment key={key}>
-                    <TableRow 
-                      hover
-                      onClick={() => toggleGroup(key)}
-                      sx={{ 
-                        cursor: 'pointer',
-                        backgroundColor: 'rgba(0, 0, 0, 0.03)'
-                      }}
-                    >
-                      <TableCell>
-                        <Box display="flex" alignItems="center">
-                          <IconButton size="small">
-                            {expandedGroups.has(key) ? 
-                              <KeyboardArrowDownIcon /> : 
-                              <KeyboardArrowRightIcon />
-                            }
-                          </IconButton>
-                          <Typography variant="subtitle1" sx={{ ml: 1 }}>
-                            {format(group.date, 'EEEE d MMMM yyyy', { locale: fr })}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box display="flex" alignItems="center">
-                          <Typography>{group.projectName}</Typography>
-                          <Typography sx={{ ml: 1, color: 'text.secondary' }}>
-                            {group.task}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <TotalTimeDisplay duration={group.totalDuration} />
-                      </TableCell>
-                      <TableCell>{group.entries.length}</TableCell>
-                      <TableCell />
-                    </TableRow>
-                    <TableRow key={`${key}-row`}>
-                      <TableCell colSpan={5} sx={{ p: 0, border: 0 }}>
-                        <Collapse in={expandedGroups.has(key)} timeout="auto" unmountOnExit>
-                          <Box sx={{ py: 2 }}>
-                            <Table size="small">
-                              <TableBody>
-                                {group.entries.map((entry) => (
-                                  <TableRow key={entry.id}>
-                                    <TableCell sx={{ pl: 6 }}>
-                                      {format(entry.startTime, 'HH:mm')} - {entry.endTime ? format(entry.endTime, 'HH:mm') : '--:--'}
-                                    </TableCell>
-                                    <TableCell>
-                                      <TotalTimeDisplay duration={entry.duration || 0} />
-                                    </TableCell>
-                                    <TableCell>
-                                      {entry.tags && entry.tags.map((tag) => (
-                                        <Chip
-                                          key={`${entry.id}-${tag}`}
-                                          label={tag}
-                                          size="small"
-                                          sx={{ mr: 0.5 }}
-                                        />
-                                      ))}
-                                    </TableCell>
-                                    <TableCell>
-                                      <IconButton
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>{t('timeTracker.project')}</TableCell>
+              <TableCell>{t('timeTracker.task')}</TableCell>
+              <TableCell>{t('timeTracker.duration')}</TableCell>
+              <TableCell>{t('timeTracker.entries')}</TableCell>
+              <TableCell>{t('common.actions')}</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {Object.entries(groupedEntries)
+              .sort(([keyA, groupA], [keyB, groupB]) => groupB.date.getTime() - groupA.date.getTime())
+              .map(([key, group]) => (
+                <React.Fragment key={key}>
+                  <TableRow 
+                    hover
+                    onClick={() => toggleGroup(key)}
+                    sx={{ 
+                      cursor: 'pointer',
+                      backgroundColor: 'rgba(0, 0, 0, 0.03)'
+                    }}
+                  >
+                    <TableCell>
+                      <Box display="flex" alignItems="center">
+                        <IconButton size="small">
+                          {expandedGroups.has(key) ? 
+                            <KeyboardArrowDownIcon /> : 
+                            <KeyboardArrowRightIcon />
+                          }
+                        </IconButton>
+                        <Typography variant="subtitle1" sx={{ ml: 1 }}>
+                          {format(group.date, 'EEEE d MMMM yyyy', { locale: fr })}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center">
+                        <Typography>{group.projectName}</Typography>
+                        <Typography sx={{ ml: 1, color: 'text.secondary' }}>
+                          {group.task}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <TotalTimeDisplay duration={group.totalDuration} />
+                    </TableCell>
+                    <TableCell>{group.entries.length}</TableCell>
+                    <TableCell />
+                  </TableRow>
+                  <TableRow key={`${key}-row`}>
+                    <TableCell colSpan={5} sx={{ p: 0, border: 0 }}>
+                      <Collapse in={expandedGroups.has(key)} timeout="auto" unmountOnExit>
+                        <Box sx={{ py: 2 }}>
+                          <Table size="small">
+                            <TableBody>
+                              {group.entries.map((entry) => (
+                                <TableRow key={entry.id}>
+                                  <TableCell sx={{ pl: 6 }}>
+                                    {format(entry.startTime, 'HH:mm')} - {entry.endTime ? format(entry.endTime, 'HH:mm') : '--:--'}
+                                  </TableCell>
+                                  <TableCell>
+                                    <TotalTimeDisplay duration={entry.duration || 0} />
+                                  </TableCell>
+                                  <TableCell>
+                                    {entry.tags && entry.tags.map((tag) => (
+                                      <Chip
+                                        key={`${entry.id}-${tag}`}
+                                        label={tag}
                                         size="small"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditClick(entry);
-                                        }}
-                                      >
-                                        <EditIcon fontSize="small" />
-                                      </IconButton>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </Box>
-                        </Collapse>
-                      </TableCell>
-                    </TableRow>
-                  </React.Fragment>
-                ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+                                        sx={{ mr: 0.5 }}
+                                      />
+                                    ))}
+                                  </TableCell>
+                                  <TableCell>
+                                    <IconButton
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditClick(entry);
+                                      }}
+                                    >
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </Box>
+                      </Collapse>
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
+              ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   );
 };
