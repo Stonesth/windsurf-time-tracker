@@ -71,6 +71,7 @@
     "title": "Daily Tasks",
     "noTasks": "No tasks for today",
     "addTask": "Add Task",
+    "addEntry": "Add Entry",
     "editEntry": "Edit Entry",
     "project": "Project",
     "taskName": "Task Name",
