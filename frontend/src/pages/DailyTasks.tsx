@@ -429,12 +429,15 @@ const DailyTasks = () => {
   };
 
   const handleEditClick = () => {
+    console.log('handleEditClick called');
     if (selectedTask) {
+      console.log('Selected task:', selectedTask);
       setEditTaskData({
         projectId: selectedTask.projectId,
         task: selectedTask.task || '',
         tags: selectedTask.tags?.join(', ') || '',
       });
+      console.log('Edit task data set:', editTaskData);
       setOpenEditDialog(true);
     }
     handleMenuClose();
@@ -518,17 +521,22 @@ const DailyTasks = () => {
   };
 
   const handleEditEntry = (entry: TimeEntry) => {
-    console.log('Editing entry with tags:', entry.tags); // Debug log
+    console.log('handleEditEntry called with entry:', entry);
     setSelectedEntry({
       ...entry,
       tags: entry.tags || []
     });
+    console.log('Selected entry set to:', entry);
     setIsNewEntry(false);
     setIsFormOpen(true);
   };
 
   const handleSaveEntry = async (entryData: Partial<TimeEntry>) => {
-    if (!currentUser) return;
+    console.log('handleSaveEntry called with data:', entryData);
+    if (!currentUser) {
+      console.log('No current user, returning');
+      return;
+    }
 
     try {
       const duration = Math.floor(
@@ -545,13 +553,16 @@ const DailyTasks = () => {
         duration: duration,
         isRunning: false,
       };
+      console.log('Entry to save:', entryToSave);
 
       if (isNewEntry) {
+        console.log('Creating new entry');
         await addDoc(collection(db, 'timeEntries'), {
           ...entryToSave,
           userId: currentUser.uid,
         });
       } else if (selectedEntry) {
+        console.log('Updating existing entry:', selectedEntry.id);
         const entryRef = doc(db, 'timeEntries', selectedEntry.id);
         await updateDoc(entryRef, entryToSave);
       }
@@ -1010,6 +1021,18 @@ const DailyTasks = () => {
           })}
         </Grid>
       )}
+      <TimeEntryForm
+        open={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setSelectedEntry(null);
+        }}
+        onSave={handleSaveEntry}
+        initialData={selectedEntry || undefined}
+        isEdit={!isNewEntry}
+        existingTags={existingTags}
+      />
+
       <Dialog
         id="bulk-edit-dialog"
         open={openBulkEditDialog}
@@ -1123,119 +1146,6 @@ const DailyTasks = () => {
           </Button>
           <Button onClick={handleBulkEditSave} variant="contained" color="primary">
             {t('common.save')}
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog
-        id="edit-dialog"
-        open={openEditDialog}
-        onClose={() => setOpenEditDialog(false)}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>
-          {selectedTask ? t('dailyTasks.editTask') : t('dailyTasks.addTask')}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Autocomplete
-              id="edit-project-autocomplete"
-              options={projects}
-              getOptionLabel={(option) => {
-                // Handle both string and Project object cases
-                if (typeof option === 'string') return option;
-                return option?.name || '';
-              }}
-              value={editTaskData.projectId ? 
-                (projects.find(p => p.id === editTaskData.projectId) || editTaskData.projectId) 
-                : null
-              }
-              onChange={(_, newValue) => {
-                const projectId = typeof newValue === 'string' ? newValue : newValue?.id || '';
-                setEditTaskData(prev => ({ ...prev, projectId }));
-              }}
-              freeSolo
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label={t('dailyTasks.project')}
-                  placeholder={t('dailyTasks.searchProject')}
-                />
-              )}
-              renderOption={(props, option) => (
-                <Box
-                  component="li"
-                  {...props}
-                  key={option.id}
-                >
-                  {option.name}
-                </Box>
-              )}
-              isOptionEqualToValue={(option, value) => {
-                if (typeof option === 'string' && typeof value === 'string') {
-                  return option === value;
-                }
-                return option?.id === value?.id;
-              }}
-              fullWidth
-              disablePortal
-            />
-
-            <TextField
-              id="edit-task-name"
-              label={t('dailyTasks.taskName')}
-              value={editTaskData.task}
-              onChange={(e) => setEditTaskData(prev => ({ ...prev, task: e.target.value }))}
-              multiline
-              rows={2}
-            />
-
-            <Autocomplete
-              id="edit-tags"
-              multiple
-              freeSolo
-              options={existingTags || []}
-              value={editTaskData.tags ? editTaskData.tags.split(',').filter(tag => tag.trim() !== '') : []}
-              onChange={(_, newValue) => {
-                setEditTaskData(prev => ({ ...prev, tags: newValue.join(', ') }));
-              }}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => {
-                  const { key, ...otherProps } = getTagProps({ index });
-                  return (
-                    <Chip
-                      key={`edit-tag-${option}`}
-                      label={option}
-                      {...otherProps}
-                    />
-                  );
-                })
-              }
-              renderOption={(props, option) => (
-                <Box
-                  component="li"
-                  {...props}
-                  key={`edit-tag-option-${option}`}
-                >
-                  {option}
-                </Box>
-              )}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label={t('dailyTasks.tags')}
-                  placeholder={t('dailyTasks.addTags')}
-                />
-              )}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditDialog(false)}>
-            {t('common.cancel')}
-          </Button>
-          <Button onClick={handleEditSubmit} variant="contained">
-            {selectedTask ? t('common.save') : t('common.create')}
           </Button>
         </DialogActions>
       </Dialog>
