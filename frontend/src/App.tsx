@@ -14,6 +14,8 @@ import NavBar from './components/layout/NavBar';
 import { CircularProgress, Box } from '@mui/material';
 import { AdminPage } from './pages/Admin';
 import Profile from './components/Profile/Profile';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -42,82 +44,84 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <AuthProvider>
-        <ProjectsProvider>
-          <Router>
-            <div className="App">
-              <NavBar />
-              <Routes>
-                <Route
-                  path="/"
-                  element={currentUser ? <Navigate to="/daily" /> : <Navigate to="/login" />}
-                />
-                <Route 
-                  path="/login" 
-                  element={currentUser ? <Navigate to="/daily" /> : <LoginForm />} 
-                />
-                <Route path="/signup" element={<SignUpForm />} />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/projects"
-                  element={
-                    <ProtectedRoute>
-                      <Projects />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/task-search"
-                  element={
-                    <ProtectedRoute>
-                      <TaskSearch />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/daily"
-                  element={
-                    <ProtectedRoute>
-                      <DailyTasks />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/daily-tasks"
-                  element={
-                    <ProtectedRoute>
-                      <DailyTasks />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute>
-                      <AdminPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-            </div>
-          </Router>
-        </ProjectsProvider>
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ProjectsProvider>
+            <Router>
+              <div className="App">
+                <NavBar />
+                <Routes>
+                  <Route
+                    path="/"
+                    element={currentUser ? <Navigate to="/daily" /> : <Navigate to="/login" />}
+                  />
+                  <Route 
+                    path="/login" 
+                    element={currentUser ? <Navigate to="/daily" /> : <LoginForm />} 
+                  />
+                  <Route path="/signup" element={<SignUpForm />} />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/projects"
+                    element={
+                      <ProtectedRoute>
+                        <Projects />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/task-search"
+                    element={
+                      <ProtectedRoute>
+                        <TaskSearch />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/daily"
+                    element={
+                      <ProtectedRoute>
+                        <DailyTasks />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/daily-tasks"
+                    element={
+                      <ProtectedRoute>
+                        <DailyTasks />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin"
+                    element={
+                      <ProtectedRoute>
+                        <AdminPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    }
+                  />
+                </Routes>
+              </div>
+            </Router>
+          </ProjectsProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }
