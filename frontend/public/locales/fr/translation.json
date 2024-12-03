@@ -71,6 +71,7 @@
     "title": "Tâches quotidiennes",
     "noTasks": "Aucune tâche pour aujourd'hui",
     "addTask": "Ajouter une tâche",
+    "addEntry": "Ajouter une entrée",
     "editEntry": "Modifier l'entrée",
     "project": "Projet",
     "taskName": "Nom de la tâche",
