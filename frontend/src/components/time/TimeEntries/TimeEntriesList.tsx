@@ -32,6 +32,7 @@ import { useProjects } from '../../../contexts/ProjectsContext';
 import EditTimeEntryDialog from './EditTimeEntryDialog';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface TimeEntry {
   id: string;
@@ -322,7 +323,7 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
                             }
                           </IconButton>
                           <Typography variant="subtitle1" sx={{ ml: 1 }}>
-                            {format(group.date, 'EEEE d MMMM yyyy', { locale: 'fr-FR' })}
+                            {format(group.date, 'EEEE d MMMM yyyy', { locale: fr })}
                           </Typography>
                         </Box>
                       </TableCell>
