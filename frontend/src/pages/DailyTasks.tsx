@@ -1039,6 +1039,7 @@ const DailyTasks = () => {
         onClose={() => setOpenBulkEditDialog(false)}
         fullWidth
         maxWidth="sm"
+        disableEnforceFocus
       >
         <DialogTitle>{t('dailyTasks.editGroup')}</DialogTitle>
         <DialogContent>

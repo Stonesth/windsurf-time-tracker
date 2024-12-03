@@ -399,7 +399,13 @@ const Projects = () => {
         ))}
       </Grid>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        maxWidth="sm" 
+        fullWidth
+        disableEnforceFocus
+      >
         <DialogTitle>
           {editingProject ? t('projects.editProject') : t('projects.newProject')}
         </DialogTitle>

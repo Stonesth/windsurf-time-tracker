@@ -105,7 +105,13 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
   if (!open || !timeEntry) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      disableEnforceFocus
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogTitle>Modifier l'entrée de temps</DialogTitle>
       <DialogContent>
         {loading ? (

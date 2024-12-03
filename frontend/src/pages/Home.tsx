@@ -84,6 +84,7 @@ const Home = () => {
         onClose={handleCloseDialog}
         maxWidth="md"
         fullWidth
+        disableEnforceFocus
       >
         <DialogTitle>
           <Typography variant="h4" align="center">

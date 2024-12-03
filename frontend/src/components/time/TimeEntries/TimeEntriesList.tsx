@@ -102,6 +102,10 @@ const TotalTimeDisplay = ({ duration }: { duration: number }) => {
 };
 
 const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
+  const { currentUser } = useAuth();
+  const { projects, loading: projectsLoading } = useProjects();
+  const { t } = useTranslation();
+
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [groupedEntries, setGroupedEntries] = useState<GroupedTimeEntries>({});
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -110,9 +114,12 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { currentUser } = useAuth();
-  const { projects, loading: projectsLoading } = useProjects();
-  const { t } = useTranslation();
+  const [filters, setFilters] = useState<SearchFilters>({
+    task: '',
+    tags: '',
+    startDate: '',
+    endDate: '',
+  });
 
   // Fonction pour obtenir le nom du projet
   const getProjectName = (projectId: string): string => {
@@ -243,13 +250,6 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
       );
 
     return matchesTask && matchesTags && matchesStartDate && matchesEndDate;
-  });
-
-  const [filters, setFilters] = useState<SearchFilters>({
-    task: '',
-    tags: '',
-    startDate: '',
-    endDate: '',
   });
 
   return (
