@@ -16,7 +16,9 @@
     "create": "Create",
     "all": "All",
     "unknown": "Unknown",
-    "pressEnter": "Press Enter to search"
+    "pressEnter": "Press Enter to search",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing..."
   },
   "nav": {
     "timeTracker": "Time Tracker",
@@ -131,7 +133,8 @@
     "searchByTags": "Search by tags",
     "startDate": "Start date",
     "endDate": "End date",
-    "noTask": "No task"
+    "noTask": "No task",
+    "lastUpdate": "Last update"
   },
   "timeStats": {
     "title": "Statistics",

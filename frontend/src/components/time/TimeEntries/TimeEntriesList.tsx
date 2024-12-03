@@ -25,7 +25,8 @@ import ClearIcon from '@mui/icons-material/Clear';
 import EditIcon from '@mui/icons-material/Edit';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import { collection, query, where, orderBy, limit, onSnapshot, Timestamp } from 'firebase/firestore';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useProjects } from '../../../contexts/ProjectsContext';
@@ -107,12 +108,8 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [filters, setFilters] = useState<SearchFilters>({
-    task: '',
-    tags: '',
-    startDate: '',
-    endDate: '',
-  });
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { currentUser } = useAuth();
   const { projects, loading: projectsLoading } = useProjects();
   const { t } = useTranslation();
@@ -123,39 +120,49 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
     return project?.name || 'Projet inconnu';
   };
 
-  useEffect(() => {
+  const fetchTimeEntries = async () => {
     if (!currentUser) return;
+    setIsRefreshing(true);
 
-    let q = query(
-      collection(db, 'timeEntries'),
-      where('projectId', '==', projectId),
-      where('userId', '==', currentUser.uid),
-      orderBy('startTime', 'desc'), // Tri par date décroissante
-      limit(100)
-    );
+    try {
+      const q = query(
+        collection(db, 'timeEntries'),
+        where('projectId', '==', projectId),
+        where('userId', '==', currentUser.uid),
+        orderBy('startTime', 'desc'),
+        limit(100)
+      );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const entries = snapshot.docs.map(doc => {
-        const data = doc.data();
-        if (data.startTime && data.endTime) {
-          return {
-            id: doc.id,
-            ...data,
-            startTime: data.startTime.toDate(),
-            endTime: data.endTime.toDate(),
-            duration: data.duration || (data.endTime.toDate().getTime() - data.startTime.toDate().getTime()) / 1000
-          } as TimeEntry;
-        }
-        return null;
-      })
-      .filter(entry => entry !== null)
-      .sort((a, b) => b!.startTime.getTime() - a!.startTime.getTime()) as TimeEntry[];
+      const snapshot = await getDocs(q);
+      const entries = snapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          if (data.startTime && data.endTime) {
+            return {
+              id: doc.id,
+              ...data,
+              startTime: data.startTime.toDate(),
+              endTime: data.endTime.toDate(),
+              duration: data.duration || (data.endTime.toDate().getTime() - data.startTime.toDate().getTime()) / 1000
+            } as TimeEntry;
+          }
+          return null;
+        })
+        .filter(entry => entry !== null)
+        .sort((a, b) => b!.startTime.getTime() - a!.startTime.getTime()) as TimeEntry[];
 
       setTimeEntries(entries);
+      setLastRefresh(new Date());
+    } catch (error) {
+      console.error('Erreur lors de la récupération des entrées de temps:', error);
+    } finally {
       setLoading(false);
-    });
+      setIsRefreshing(false);
+    }
+  };
 
-    return () => unsubscribe();
+  useEffect(() => {
+    fetchTimeEntries();
   }, [currentUser, projectId]);
 
   useEffect(() => {
@@ -238,11 +245,31 @@ const TimeEntriesList: React.FC<TimeEntriesListProps> = ({ projectId }) => {
     return matchesTask && matchesTags && matchesStartDate && matchesEndDate;
   });
 
+  const [filters, setFilters] = useState<SearchFilters>({
+    task: '',
+    tags: '',
+    startDate: '',
+    endDate: '',
+  });
+
   return (
     <Box>
       <Box mb={2}>
         <Paper sx={{ p: 2 }}>
           <Grid container spacing={2}>
+            <Grid item xs={12} container justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="body2" color="text.secondary">
+                {t('timeTracker.lastUpdate')}: {formatDate(lastRefresh)} {formatTime(lastRefresh)}
+              </Typography>
+              <Button
+                startIcon={<RefreshIcon />}
+                onClick={fetchTimeEntries}
+                disabled={isRefreshing}
+                size="small"
+              >
+                {isRefreshing ? t('common.refreshing') : t('common.refresh')}
+              </Button>
+            </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <TextField
                 fullWidth

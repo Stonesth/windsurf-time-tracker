@@ -16,7 +16,9 @@
     "create": "Aanmaken",
     "all": "Alle",
     "unknown": "Onbekend",
-    "pressEnter": "Druk op Enter om te zoeken"
+    "pressEnter": "Druk op Enter om te zoeken",
+    "refresh": "Vernieuwen",
+    "refreshing": "Vernieuwen..."
   },
   "nav": {
     "timeTracker": "Tijdregistratie",
@@ -131,7 +133,8 @@
     "startDate": "Startdatum",
     "endDate": "Einddatum",
     "entries": "Invoeren",
-    "noTask": "Geen taak"
+    "noTask": "Geen taak",
+    "lastUpdate": "Laatste update"
   },
   "timeStats": {
     "title": "Statistieken",

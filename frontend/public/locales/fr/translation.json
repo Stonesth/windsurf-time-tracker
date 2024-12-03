@@ -16,7 +16,9 @@
     "create": "Créer",
     "all": "Tous",
     "unknown": "Inconnu",
-    "pressEnter": "Appuyez sur Entrée pour rechercher"
+    "pressEnter": "Appuyez sur Entrée pour rechercher",
+    "refresh": "Rafraîchir",
+    "refreshing": "Rafraîchissement..."
   },
   "nav": {
     "timeTracker": "Suivi du Temps",
@@ -136,7 +138,8 @@
     "searchByTags": "Rechercher par tags",
     "startDate": "Date de début",
     "endDate": "Date de fin",
-    "noTask": "Sans tâche"
+    "noTask": "Sans tâche",
+    "lastUpdate": "Dernière mise à jour"
   },
   "timeStats": {
     "title": "Statistiques",
