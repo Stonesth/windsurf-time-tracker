@@ -144,6 +144,20 @@
     "mostActiveProject": "Most Active Project",
     "mostProductiveDay": "Most Productive Day"
   },
+  "statistics": {
+    "advanced": "Advanced Statistics",
+    "timeRange": "Time Range",
+    "day": "Day",
+    "week": "Week",
+    "month": "Month",
+    "year": "Year",
+    "weeklyComparison": "Weekly Comparison",
+    "comparedToPreviousWeek": "Compared to previous week",
+    "dailyAverage": "Daily Average",
+    "timeDistribution": "Time Distribution",
+    "duration": "Duration",
+    "topProjects": "Top Projects"
+  },
   "profile": {
     "title": "Profile",
     "personalInfo": "Personal Information",
