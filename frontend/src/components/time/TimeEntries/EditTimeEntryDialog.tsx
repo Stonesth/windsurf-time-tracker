@@ -17,6 +17,10 @@ import {
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { useProjects, Project } from '../../../hooks/useProjects';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { fr } from 'date-fns/locale';
 
 interface TimeEntry {
   id: string;
@@ -44,10 +48,8 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
   onUpdate,
 }) => {
   const [formData, setFormData] = useState({
-    startDate: '',
-    startTime: '',
-    endDate: '',
-    endTime: '',
+    startTime: new Date(),
+    endTime: new Date(),
     notes: '',
     task: '',
     tags: '',
@@ -58,14 +60,9 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
 
   useEffect(() => {
     if (timeEntry) {
-      const start = new Date(timeEntry.startTime);
-      const end = new Date(timeEntry.endTime);
-
       setFormData({
-        startDate: start.toISOString().split('T')[0],
-        startTime: start.toTimeString().split(' ')[0].substr(0, 5),
-        endDate: end.toISOString().split('T')[0],
-        endTime: end.toTimeString().split(' ')[0].substr(0, 5),
+        startTime: new Date(timeEntry.startTime),
+        endTime: new Date(timeEntry.endTime),
         notes: timeEntry.notes || '',
         task: timeEntry.task || '',
         tags: timeEntry.tags ? timeEntry.tags.join(', ') : '',
@@ -79,13 +76,10 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
     setLoading(true);
 
     try {
-      const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
-      const endDateTime = new Date(`${formData.endDate}T${formData.endTime}`);
-      
       const timeEntryRef = doc(db, 'timeEntries', timeEntry.id);
       await updateDoc(timeEntryRef, {
-        startTime: Timestamp.fromDate(startDateTime),
-        endTime: Timestamp.fromDate(endDateTime),
+        startTime: Timestamp.fromDate(formData.startTime),
+        endTime: Timestamp.fromDate(formData.endTime),
         notes: formData.notes,
         task: formData.task,
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
@@ -150,43 +144,26 @@ const EditTimeEntryDialog: React.FC<EditTimeEntryDialogProps> = ({
               helperText="Exemple: important, urgent, bug"
             />
 
-            <Stack direction="row" spacing={2}>
-              <TextField
-                label="Date de début"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-              />
-              <TextField
-                label="Heure de début"
-                type="time"
-                value={formData.startTime}
-                onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-              />
-            </Stack>
-
-            <Stack direction="row" spacing={2}>
-              <TextField
-                label="Date de fin"
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-              />
-              <TextField
-                label="Heure de fin"
-                type="time"
-                value={formData.endTime}
-                onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-              />
-            </Stack>
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
+              <Stack spacing={2}>
+                <DateTimePicker
+                  label="Date et heure de début"
+                  value={formData.startTime}
+                  onChange={(newValue) => setFormData(prev => ({ ...prev, startTime: newValue || new Date() }))}
+                  format="dd/MM/yyyy HH:mm"
+                  ampm={false}
+                  slotProps={{ textField: { fullWidth: true } }}
+                />
+                <DateTimePicker
+                  label="Date et heure de fin"
+                  value={formData.endTime}
+                  onChange={(newValue) => setFormData(prev => ({ ...prev, endTime: newValue || new Date() }))}
+                  format="dd/MM/yyyy HH:mm"
+                  ampm={false}
+                  slotProps={{ textField: { fullWidth: true } }}
+                />
+              </Stack>
+            </LocalizationProvider>
 
             <TextField
               fullWidth
