@@ -161,11 +161,15 @@ const TimeEntryForm: React.FC<TimeEntryFormProps> = ({
               label={t('timeTracker.startTime')}
               value={formData.startTime}
               onChange={(newValue) => handleChange('startTime', newValue)}
+              format="dd/MM/yyyy HH:mm"
+              ampm={false}
             />
             <DateTimePicker
               label={t('timeTracker.endTime')}
               value={formData.endTime}
               onChange={(newValue) => handleChange('endTime', newValue)}
+              format="dd/MM/yyyy HH:mm"
+              ampm={false}
             />
           </LocalizationProvider>
 
