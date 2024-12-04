@@ -43,6 +43,20 @@
     "activeProjects": "Projets actifs",
     "activeTasks": "Tâches actives"
   },
+  "statistics": {
+    "advanced": "Statistiques avancées",
+    "timeRange": "Période",
+    "day": "Jour",
+    "week": "Semaine",
+    "month": "Mois",
+    "year": "Année",
+    "weeklyComparison": "Comparaison hebdomadaire",
+    "comparedToPreviousWeek": "Par rapport à la semaine précédente",
+    "dailyAverage": "Moyenne quotidienne",
+    "timeDistribution": "Distribution du temps",
+    "duration": "Durée",
+    "topProjects": "Top des projets"
+  },
   "projects": {
     "title": "Projets",
     "newProject": "Nouveau Projet",
