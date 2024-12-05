@@ -99,6 +99,22 @@ npm run dev
 
 ## Déploiement
 
+Pour déployer l'application sur Firebase Hosting :
+
+1. Construire l'application frontend :
+```bash
+cd frontend
+npm run build
+```
+
+2. Déployer sur Firebase Hosting :
+```bash
+cd ..  # Retourner à la racine du projet
+firebase deploy --only hosting
+```
+
+L'application sera accessible à l'URL fournie par Firebase après le déploiement.
+
 Le projet utilise Firebase pour le déploiement :
 
 1. Frontend : Hébergé sur Firebase Hosting
