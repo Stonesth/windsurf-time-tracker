@@ -78,6 +78,7 @@ interface BulkEditTimeEntryData {
 interface GroupedTimeEntry {
   projectId: string;
   task: string;
+  notes: string;  // Ajout du champ notes
   entries: TimeEntry[];
   totalDuration: number;
   isRunning: boolean;
@@ -624,6 +625,7 @@ const DailyTasks = () => {
         acc.set(key, {
           projectId: task.projectId,
           task: task.task || '',
+          notes: task.notes || '',  // Ajout des notes
           entries: [],
           totalDuration: 0,
           isRunning: false
@@ -857,88 +859,103 @@ const DailyTasks = () => {
                     },
                   }}
                 >
-                  <Box
-                    id={`${groupId}-header`}
-                    display="flex"
-                    flexDirection={isMobile ? 'column' : 'row'}
-                    justifyContent="space-between"
-                    alignItems={isMobile ? 'stretch' : 'flex-start'}
-                    gap={isMobile ? 2 : 0}
+                  <Box 
+                    flex={1} 
+                    onClick={() => toggleGroupExpansion(groupId)}
+                    sx={{ cursor: 'pointer' }}
                   >
-                    <Box 
-                      flex={1} 
-                      onClick={() => toggleGroupExpansion(groupId)}
-                      sx={{ cursor: 'pointer' }}
-                    >
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Typography id={`${groupId}-project-name`} variant="h6" component="h2">
-                          {projectName}
-                        </Typography>
-                        <IconButton
-                          id={`${groupId}-expand`}
-                          size="small"
-                          sx={{
-                            transform: expandedGroups.has(groupId) ? 'rotate(180deg)' : 'rotate(0deg)',
-                            transition: 'transform 0.2s'
-                          }}
-                        >
-                          <KeyboardArrowDown />
-                        </IconButton>
-                      </Box>
-                      <Typography id={`${groupId}-task-name`} color="textSecondary" gutterBottom>
-                        {group.task}
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Typography id={`${groupId}-project-name`} variant="h6" component="h2">
+                        {projectName}
                       </Typography>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Timer fontSize="small" color="action" />
-                        <Typography id={`${groupId}-duration`} variant="body2" color="textSecondary">
-                          {t('dailyTasks.totalDuration')}: {formatDuration(group.totalDuration)}
-                        </Typography>
-                        <Typography id={`${groupId}-entries-count`} variant="body2" color="textSecondary">
-                          ({group.entries.length} {t('dailyTasks.entries')})
-                        </Typography>
-                      </Box>
+                      <IconButton
+                        id={`${groupId}-expand`}
+                        size="small"
+                        sx={{
+                          transform: expandedGroups.has(groupId) ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s'
+                        }}
+                      >
+                        <KeyboardArrowDown />
+                      </IconButton>
                     </Box>
 
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: isMobile ? 'flex-end' : 'flex-start',
-                        width: isMobile ? '100%' : 'auto',
-                        gap: 1
-                      }}
+                    <Box 
+                      display="flex" 
+                      alignItems="center" 
+                      sx={{ mt: 1, mb: 2 }}
                     >
-                      {!group.isRunning ? (
-                        <IconButton
-                          id={`${groupId}-start`}
-                          onClick={() => handleStartTimer(group.entries[0].id)}
-                          color="primary"
-                        >
-                          <PlayArrow />
-                        </IconButton>
-                      ) : (
-                        <IconButton
-                          id={`${groupId}-stop`}
-                          onClick={() => {
-                            const runningEntry = group.entries.find(e => e.isRunning);
-                            if (runningEntry) {
-                              handleStopTimer(runningEntry.id);
-                            }
+                      <Typography 
+                        id={`${groupId}-task-name`} 
+                        color="textSecondary"
+                      >
+                        {group.task}
+                      </Typography>
+                      {group.notes && (
+                        <Typography 
+                          id={`${groupId}-notes`} 
+                          variant="body2" 
+                          color="textSecondary"
+                          sx={{ 
+                            fontStyle: 'italic',
+                            ml: 'auto',
+                            mr: 'auto'
                           }}
-                          color="secondary"
                         >
-                          <Stop />
-                        </IconButton>
+                          {group.notes}
+                        </Typography>
                       )}
-                      <Tooltip title={t('dailyTasks.editGroup')}>
-                        <IconButton
-                          onClick={() => handleBulkEdit(group)}
-                          size="small"
-                          id={`${groupId}-bulk-edit`}
-                        >
-                          <MoreVertIcon />
-                        </IconButton>
-                      </Tooltip>
                     </Box>
+
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Timer fontSize="small" color="action" />
+                      <Typography id={`${groupId}-duration`} variant="body2" color="textSecondary">
+                        {t('dailyTasks.totalDuration')}: {formatDuration(group.totalDuration)}
+                      </Typography>
+                      <Typography id={`${groupId}-entries-count`} variant="body2" color="textSecondary">
+                        ({group.entries.length} {t('dailyTasks.entries')})
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: isMobile ? 'flex-end' : 'flex-start',
+                      width: isMobile ? '100%' : 'auto',
+                      gap: 1
+                    }}
+                  >
+                    {!group.isRunning ? (
+                      <IconButton
+                        id={`${groupId}-start`}
+                        onClick={() => handleStartTimer(group.entries[0].id)}
+                        color="primary"
+                      >
+                        <PlayArrow />
+                      </IconButton>
+                    ) : (
+                      <IconButton
+                        id={`${groupId}-stop`}
+                        onClick={() => {
+                          const runningEntry = group.entries.find(e => e.isRunning);
+                          if (runningEntry) {
+                            handleStopTimer(runningEntry.id);
+                          }
+                        }}
+                        color="secondary"
+                      >
+                        <Stop />
+                      </IconButton>
+                    )}
+                    <Tooltip title={t('dailyTasks.editGroup')}>
+                      <IconButton
+                        onClick={() => handleBulkEdit(group)}
+                        size="small"
+                        id={`${groupId}-bulk-edit`}
+                      >
+                        <MoreVertIcon />
+                      </IconButton>
+                    </Tooltip>
                   </Box>
 
                   <Collapse in={expandedGroups.has(groupId)}>
@@ -966,20 +983,15 @@ const DailyTasks = () => {
                               gap: isMobile ? 1 : 0
                             }}
                           >
-                            <Box>
+                            <Box display="flex" flexDirection="column" flex={1}>
                               <Box display="flex" alignItems="center" gap={2}>
                                 <Typography id={`${entryId}-time`} variant="body2">
                                   {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : t('dailyTasks.running')}
                                 </Typography>
-                                {entry.notes && (
-                                  <Typography id={`${entryId}-notes`} variant="body2" color="textSecondary">
-                                    {entry.notes}
-                                  </Typography>
-                                )}
+                                <Typography id={`${entryId}-duration`} variant="body2" color="textSecondary">
+                                  ({formatDuration(entry.isRunning ? timers[entry.id] || 0 : entry.duration || 0)})
+                                </Typography>
                               </Box>
-                              <Typography id={`${entryId}-duration`} variant="body2" color="textSecondary">
-                                {t('dailyTasks.duration')}: {formatDuration(entry.isRunning ? timers[entry.id] || 0 : entry.duration || 0)}
-                              </Typography>
                             </Box>
                             <Box
                               sx={{
