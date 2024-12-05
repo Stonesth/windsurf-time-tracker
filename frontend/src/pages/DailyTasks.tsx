@@ -458,11 +458,9 @@ const DailyTasks = () => {
         // Mode édition
         await updateDoc(doc(db, 'timeEntries', selectedTask.id), updatedData);
 
-        setTodaysTasks(prev => prev.map(task =>
-          task.id === selectedTask.id
-            ? { ...task, ...updatedData }
-            : task
-        ));
+        setTodaysTasks(prev =>
+          prev.map(task => (task.id === selectedTask.id ? { ...task, ...updatedData } : task))
+        );
       } else {
         // Mode création
         const now = new Date();
@@ -969,9 +967,16 @@ const DailyTasks = () => {
                             }}
                           >
                             <Box>
-                              <Typography id={`${entryId}-time`} variant="body2">
-                                {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : t('dailyTasks.running')}
-                              </Typography>
+                              <Box display="flex" alignItems="center" gap={2}>
+                                <Typography id={`${entryId}-time`} variant="body2">
+                                  {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : t('dailyTasks.running')}
+                                </Typography>
+                                {entry.notes && (
+                                  <Typography id={`${entryId}-notes`} variant="body2" color="textSecondary">
+                                    {entry.notes}
+                                  </Typography>
+                                )}
+                              </Box>
                               <Typography id={`${entryId}-duration`} variant="body2" color="textSecondary">
                                 {t('dailyTasks.duration')}: {formatDuration(entry.isRunning ? timers[entry.id] || 0 : entry.duration || 0)}
                               </Typography>
