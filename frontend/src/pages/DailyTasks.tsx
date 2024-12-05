@@ -878,6 +878,46 @@ const DailyTasks = () => {
                       >
                         <KeyboardArrowDown />
                       </IconButton>
+                      <Box sx={{ ml: 'auto' }}>
+                        {!group.isRunning ? (
+                          <IconButton
+                            id={`${groupId}-start`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartTimer(group.entries[0].id);
+                            }}
+                            color="primary"
+                          >
+                            <PlayArrow />
+                          </IconButton>
+                        ) : (
+                          <IconButton
+                            id={`${groupId}-stop`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const runningEntry = group.entries.find(e => e.isRunning);
+                              if (runningEntry) {
+                                handleStopTimer(runningEntry.id);
+                              }
+                            }}
+                            color="secondary"
+                          >
+                            <Stop />
+                          </IconButton>
+                        )}
+                        <Tooltip title={t('dailyTasks.editGroup')}>
+                          <IconButton
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBulkEdit(group);
+                            }}
+                            size="small"
+                            id={`${groupId}-bulk-edit`}
+                          >
+                            <MoreVertIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     </Box>
 
                     <Box 
@@ -917,47 +957,6 @@ const DailyTasks = () => {
                       </Typography>
                     </Box>
                   </Box>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: isMobile ? 'flex-end' : 'flex-start',
-                      width: isMobile ? '100%' : 'auto',
-                      gap: 1
-                    }}
-                  >
-                    {!group.isRunning ? (
-                      <IconButton
-                        id={`${groupId}-start`}
-                        onClick={() => handleStartTimer(group.entries[0].id)}
-                        color="primary"
-                      >
-                        <PlayArrow />
-                      </IconButton>
-                    ) : (
-                      <IconButton
-                        id={`${groupId}-stop`}
-                        onClick={() => {
-                          const runningEntry = group.entries.find(e => e.isRunning);
-                          if (runningEntry) {
-                            handleStopTimer(runningEntry.id);
-                          }
-                        }}
-                        color="secondary"
-                      >
-                        <Stop />
-                      </IconButton>
-                    )}
-                    <Tooltip title={t('dailyTasks.editGroup')}>
-                      <IconButton
-                        onClick={() => handleBulkEdit(group)}
-                        size="small"
-                        id={`${groupId}-bulk-edit`}
-                      >
-                        <MoreVertIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-
                   <Collapse in={expandedGroups.has(groupId)}>
                     <Box mt={2}>
                       <Typography variant="subtitle2" gutterBottom>
