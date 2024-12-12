@@ -54,6 +54,39 @@ const AdvancedStats: React.FC<AdvancedStatsProps> = ({
   const { t } = useTranslation();
   const theme = useTheme();
   const [timeRange, setTimeRange] = React.useState('week');
+  const [filteredTimeData, setFilteredTimeData] = React.useState<TimeData[]>(timeData);
+  const [filteredProjectData, setFilteredProjectData] = React.useState<ProjectData[]>(projectData);
+
+  React.useEffect(() => {
+    const filterData = () => {
+      const now = new Date();
+      let startDate;
+
+      switch (timeRange) {
+        case 'day':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          startDate = new Date(now);
+          startDate.setDate(startDate.getDate() - now.getDay());
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+        default:
+          startDate = new Date(0);
+      }
+
+      setFilteredTimeData(timeData.filter(data => new Date(data.date) >= startDate));
+      setFilteredProjectData(projectData);
+    };
+
+    filterData();
+  }, [timeRange, timeData, projectData]);
 
   const weeklyTrend = weeklyComparison.currentWeek - weeklyComparison.previousWeek;
   const trendPercentage = ((weeklyTrend / weeklyComparison.previousWeek) * 100).toFixed(1);
@@ -133,7 +166,7 @@ const AdvancedStats: React.FC<AdvancedStatsProps> = ({
               </Typography>
               <Box sx={{ width: '100%', height: 300 }}>
                 <ResponsiveContainer>
-                  <BarChart data={timeData}>
+                  <BarChart data={filteredTimeData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis tickFormatter={(value) => formatDuration(value, true)} />
@@ -165,7 +198,7 @@ const AdvancedStats: React.FC<AdvancedStatsProps> = ({
               <Box sx={{ width: '100%', height: 300 }}>
                 <ResponsiveContainer>
                   <BarChart
-                    data={projectData}
+                    data={filteredProjectData}
                     layout="vertical"
                     margin={{ left: 100 }}
                   >
