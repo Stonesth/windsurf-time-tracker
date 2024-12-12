@@ -1,14 +1,13 @@
 # Time Tracker Application
 
-Une application complète de suivi du temps avec un frontend React et un backend Node.js.
+Une application complète de suivi du temps avec un frontend React et un backend Firebase.
 
 ## Structure du Projet
 
 ```
 time-tracker/
-├── frontend/          # Application React/TypeScript
-├── backend/           # API Node.js/Express
-└── firebase/         # Configuration Firebase
+├── frontend/          # Application React/TypeScript avec Vite
+└── config/           # Configuration Firebase
 ```
 
 ## Technologies Utilisées
@@ -19,11 +18,8 @@ time-tracker/
 - Material-UI pour l'interface
 - Firebase Authentication
 - Firebase Firestore
-
-### Backend
-- Node.js
-- Express
-- Firebase Admin SDK
+- Victory pour les graphiques
+- i18next pour l'internationalisation
 
 ## Installation
 
@@ -39,13 +35,7 @@ cd frontend
 npm install
 ```
 
-3. Installer les dépendances du backend :
-```bash
-cd ../backend
-npm install
-```
-
-4. Configuration Firebase :
+3. Configuration Firebase :
 
 ### Frontend
 1. Copier `.env.example` vers `.env`
@@ -60,40 +50,11 @@ npm install
    VITE_FIREBASE_APP_ID=votre-app-id
    ```
 
-3. Le fichier `src/lib/firebase.ts` est déjà configuré pour utiliser ces variables d'environnement
-
-### Backend
-1. Copier `.env.example` vers `.env`
-2. Configurer les variables d'environnement dans `.env` :
-   ```env
-   GOOGLE_APPLICATION_CREDENTIALS=../config/service-account-key.json
-   FIREBASE_DATABASE_URL=https://your-project-id.firebaseio.com
-   PORT=3000
-   ```
-
-3. Créer le fichier de clé de service Firebase :
-   - Aller dans la console Firebase
-   - Paramètres du projet > Comptes de service
-   - Générer une nouvelle clé privée
-   - Placer le fichier JSON téléchargé dans `backend/config/service-account-key.json`
-
-⚠️ IMPORTANT : Ne jamais commiter les fichiers suivants :
-- `.env` et autres fichiers d'environnement
-- `firebase.ts` avec vos identifiants
-- `service-account-key.json`
-- Tout autre fichier contenant des clés ou secrets
-
 ## Développement
 
 ### Frontend
 ```bash
 cd frontend
-npm run dev
-```
-
-### Backend
-```bash
-cd backend
 npm run dev
 ```
 
@@ -109,48 +70,39 @@ npm run build
 
 2. Déployer sur Firebase Hosting :
 ```bash
-cd ..  # Retourner à la racine du projet
 firebase deploy --only hosting
 ```
 
 L'application sera accessible à l'URL fournie par Firebase après le déploiement.
 
-Le projet utilise Firebase pour le déploiement :
-
-1. Frontend : Hébergé sur Firebase Hosting
-2. Backend : Fonctions Firebase
-3. Base de données : Firebase Firestore
-
-### Prérequis
+### Prérequis pour le déploiement
 - Avoir Firebase CLI installé : `npm install -g firebase-tools`
 - Être connecté à Firebase : `firebase login`
 - Avoir les droits sur le projet Firebase `timetrackingwindsurf`
 
 ### Configuration Firebase
-Le fichier de configuration Firebase (`firebase.json`) se trouve à la racine du projet. Il contient les configurations pour :
+Le fichier de configuration Firebase (`firebase.json`) contient les configurations pour :
 - L'hébergement (hosting)
 - Firestore
 - Les règles de stockage
 
-### Étapes de déploiement
-
-1. Construction du frontend :
-```bash
-cd frontend
-npm run build
-```
-
-2. Déploiement sur Firebase :
-```bash
-firebase deploy --only hosting --project timetrackingwindsurf
-```
-
-L'application sera déployée et accessible à l'URL : https://timetrackingwindsurf.web.app
+### URL de Production
+L'application est déployée et accessible à : https://timetrackingwindsurf.web.app
 
 ### Notes importantes
 - Assurez-vous que le dossier `frontend/dist` existe et contient la dernière version buildée
 - Le fichier `firebase.json` doit rester à la racine du projet
 - Les fichiers de règles et d'index sont stockés dans le dossier `config/`
+
+## Fonctionnalités
+
+- 📊 Suivi du temps en temps réel
+- 📈 Visualisation des données avec des graphiques
+- 🎯 Gestion des projets et des tâches
+- 📱 Interface responsive
+- 🌍 Support multilingue (FR/EN)
+- 🔒 Authentification sécurisée
+- 📅 Vue quotidienne, hebdomadaire et mensuelle
 
 ## Contribution
 

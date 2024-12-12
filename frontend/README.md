@@ -1,73 +1,87 @@
-# TimeTracker Application
+# Time Tracker Frontend
 
-## Project Overview
-TimeTracker is a professional time tracking application designed to help individuals and teams efficiently monitor and manage work hours across multiple projects.
+## Vue d'ensemble
+Application de suivi du temps conçue pour les windsurfeurs afin de suivre leurs sessions et leur progression.
 
-## Features
-- User Authentication
-- Time Tracking
-- Project Management
-- Reporting and Analytics
-- User Role Management
+## Fonctionnalités
+- 🔐 Authentification utilisateur
+- ⏱️ Suivi du temps en temps réel
+- 📊 Visualisation des données
+- 🎯 Gestion des projets et tâches
+- 📈 Rapports et analyses
+- 🌍 Support multilingue (FR/EN)
+- 📱 Interface responsive
 
-## Technology Stack
-- Frontend: React.js with TypeScript
-- Backend Services: Firebase
-- State Management: React Hooks
-- UI Library: Material-UI
-- Form Handling: Formik
-- Validation: Yup
+## Stack Technique
+- React.js avec TypeScript
+- Vite pour le build
+- Firebase (Auth & Firestore)
+- Material-UI
+- Victory pour les graphiques
+- i18next pour l'internationalisation
+- React Router pour la navigation
+- date-fns pour la gestion des dates
 
-## Prerequisites
+## Prérequis
 - Node.js (v16+)
-- npm or yarn
-- Firebase Account
+- npm ou yarn
+- Compte Firebase
 
-## Setup Instructions
+## Installation
 
-### 1. Clone the Repository
-```bash
-git clone [repository-url]
-cd time-tracker
-```
-
-### 2. Install Dependencies
+### 1. Installation des dépendances
 ```bash
 npm install
 ```
 
-### 3. Configure Firebase
-1. Create a Firebase project at [https://console.firebase.google.com/]
-2. Go to Project Settings
-3. Create a web app and copy the configuration
-4. Update `.env` file with your Firebase configuration
+### 2. Configuration Firebase
+1. Créer un projet Firebase sur [https://console.firebase.google.com/]
+2. Copier `.env.example` vers `.env`
+3. Mettre à jour `.env` avec votre configuration Firebase
 
-### 4. Run the Application
+### 3. Lancer l'application
 ```bash
-npm start
+npm run dev
 ```
 
-## Environment Variables
-- `REACT_APP_FIREBASE_API_KEY`: Firebase API Key
-- `REACT_APP_FIREBASE_AUTH_DOMAIN`: Firebase Auth Domain
-- `REACT_APP_FIREBASE_PROJECT_ID`: Firebase Project ID
-- `REACT_APP_FIREBASE_STORAGE_BUCKET`: Firebase Storage Bucket
-- `REACT_APP_FIREBASE_MESSAGING_SENDER_ID`: Firebase Messaging Sender ID
-- `REACT_APP_FIREBASE_APP_ID`: Firebase App ID
+## Variables d'Environnement
+- `VITE_FIREBASE_API_KEY`: Clé API Firebase
+- `VITE_FIREBASE_AUTH_DOMAIN`: Domaine d'authentification
+- `VITE_FIREBASE_PROJECT_ID`: ID du projet
+- `VITE_FIREBASE_STORAGE_BUCKET`: Bucket de stockage
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`: ID d'expéditeur
+- `VITE_FIREBASE_APP_ID`: ID de l'application
 
-## Deployment
-- Frontend: Vercel or Netlify
-- Backend: Firebase Hosting
+## Structure du Projet
+```
+src/
+├── assets/          # Images et ressources statiques
+├── components/      # Composants React réutilisables
+├── contexts/        # Contextes React (Auth, Projects, etc.)
+├── hooks/          # Hooks personnalisés
+├── lib/            # Configuration (Firebase, etc.)
+├── locales/        # Fichiers de traduction
+├── pages/          # Composants de pages
+├── types/          # Types TypeScript
+└── utils/          # Fonctions utilitaires
+```
 
-## Contributing
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+## Scripts Disponibles
+- `npm run dev` : Lance le serveur de développement
+- `npm run build` : Compile l'application pour la production
+- `npm run preview` : Prévisualise la version de production
+- `npm run lint` : Vérifie le code avec ESLint
+- `npm run format` : Formate le code avec Prettier
 
-## License
-[Specify your license]
+## Déploiement
+Le déploiement est géré via Firebase Hosting. Pour déployer :
+1. `npm run build`
+2. `firebase deploy --only hosting`
 
-## Contact
-[Your Contact Information]
+## Contribution
+1. Créer une branche pour votre fonctionnalité
+2. Commiter vos changements
+3. Créer une Pull Request
+
+## Licence
+MIT

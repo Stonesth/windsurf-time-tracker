@@ -37,7 +37,20 @@ import {
   MoreVert as MoreVertIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-import { collection, query, where, getDocs, Timestamp, orderBy, limit, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  Timestamp,
+  orderBy,
+  limit,
+  addDoc,
+  doc,
+  updateDoc,
+  deleteDoc,
+  runTransaction
+} from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectsContext';
@@ -47,7 +60,7 @@ import fr from 'date-fns/locale/fr';
 import TotalTimeDisplay from '../components/timer/TotalTimeDisplay';
 import { useTranslation } from 'react-i18next';
 import TimeEntryForm from '../components/timeEntry/TimeEntryForm';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface TimeEntry {
   id: string;
@@ -78,7 +91,7 @@ interface BulkEditTimeEntryData {
 interface GroupedTimeEntry {
   projectId: string;
   task: string;
-  notes: string;  // Ajout du champ notes
+  notes: string;  
   entries: TimeEntry[];
   totalDuration: number;
   isRunning: boolean;
@@ -98,6 +111,7 @@ const DailyTasks = () => {
   const { currentUser } = useAuth();
   const { projects } = useProjects();
   const theme = useTheme();
+  const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -130,6 +144,10 @@ const DailyTasks = () => {
       const date = new Date(dateParam);
       if (!isNaN(date.getTime())) {
         setSelectedDate(date);
+        const refreshParam = searchParams.get('refresh');
+        if (refreshParam) {
+          fetchTimeEntries();
+        }
       }
     }
   }, [location.search]);
@@ -190,7 +208,6 @@ const DailyTasks = () => {
       const endOfDay = new Date(selectedDate);
       endOfDay.setHours(23, 59, 59, 999);
 
-      // Charger tous les tags existants
       const allTagsQuery = query(
         collection(db, 'timeEntries'),
         where('userId', '==', currentUser.uid)
@@ -209,7 +226,6 @@ const DailyTasks = () => {
       console.log('Loaded all existing tags:', Array.from(allTags));
       setExistingTags(Array.from(allTags));
 
-      // Charger les entrées du jour
       const entriesQuery = query(
         collection(db, 'timeEntries'),
         where('userId', '==', currentUser.uid),
@@ -291,42 +307,59 @@ const DailyTasks = () => {
       const task = todaysTasks.find(t => t.id === taskId);
       if (!task) return;
 
-      // Arrêter toutes les autres tâches en cours
-      const runningTasks = todaysTasks.filter(t => t.isRunning);
-      for (const runningTask of runningTasks) {
-        await handleStopTimer(runningTask.id);
+      const now = new Date();
+      const today = new Date();
+
+      // Utiliser une transaction pour s'assurer que les opérations sont atomiques
+      await runTransaction(db, async (transaction) => {
+        // 1. Trouver toutes les tâches en cours
+        const runningTasksQuery = query(
+          collection(db, 'timeEntries'),
+          where('userId', '==', currentUser?.uid),
+          where('isRunning', '==', true)
+        );
+
+        const runningTasksSnapshot = await getDocs(runningTasksQuery);
+
+        // 2. Arrêter toutes les tâches en cours dans la transaction
+        runningTasksSnapshot.docs.forEach((doc) => {
+          const runningTask = doc.data();
+          const startTime = runningTask.startTime.toDate();
+          const elapsedTime = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+          const newDuration = (runningTask.duration || 0) + elapsedTime;
+
+          transaction.update(doc.ref, {
+            endTime: Timestamp.fromDate(now),
+            isRunning: false,
+            duration: newDuration
+          });
+        });
+
+        // 3. Créer la nouvelle tâche dans la transaction
+        const newTimeEntry = {
+          projectId: task.projectId,
+          userId: currentUser?.uid,
+          startTime: Timestamp.fromDate(now),
+          endTime: null,
+          duration: 0,
+          task: task.task,
+          notes: task.notes || '',
+          tags: task.tags || [],
+          isRunning: true
+        };
+
+        const newTaskRef = doc(collection(db, 'timeEntries'));
+        transaction.set(newTaskRef, newTimeEntry);
+      });
+
+      // 4. Si nécessaire, rediriger vers aujourd'hui
+      if (selectedDate.toDateString() !== today.toDateString()) {
+        const formattedDate = today.toISOString().split('T')[0];
+        navigate(`/daily-tasks?date=${formattedDate}`, { replace: true });
       }
 
-      const now = new Date();
-
-      // Créer une nouvelle entrée de temps
-      const newTimeEntry = {
-        projectId: task.projectId,
-        userId: currentUser?.uid,
-        startTime: Timestamp.fromDate(now),
-        endTime: null,
-        duration: 0,
-        task: task.task,
-        notes: task.notes || '',
-        tags: task.tags || [],
-        isRunning: true
-      };
-
-      const docRef = await addDoc(collection(db, 'timeEntries'), newTimeEntry);
-
-      const newTask = {
-        id: docRef.id,
-        ...newTimeEntry,
-        startTime: now,
-        endTime: null,
-      } as TimeEntry;
-
-      setTodaysTasks(prev => [newTask, ...prev]);
-
-      setTimers(prev => ({
-        ...prev,
-        [docRef.id]: 0
-      }));
+      // 5. Rafraîchir la page pour voir les changements
+      window.location.reload();
 
     } catch (error) {
       console.error('Erreur lors du démarrage du chronomètre:', error);
@@ -366,6 +399,8 @@ const DailyTasks = () => {
         [taskId]: newDuration
       }));
 
+      window.location.reload();
+
     } catch (error) {
       console.error('Erreur lors de l\'arrêt du chronomètre:', error);
       setError('Impossible d\'arrêter le chronomètre');
@@ -382,7 +417,6 @@ const DailyTasks = () => {
       setLoading(true);
       setError(null);
 
-      // Arrêter la tâche en cours s'il y en a une
       const runningTask = todaysTasks.find(t => t.isRunning);
       if (runningTask) {
         await handleStopTimer(runningTask.id);
@@ -390,7 +424,7 @@ const DailyTasks = () => {
 
       const now = new Date();
       const newTimeEntry = {
-        projectId: '', // Pas de projet par défaut
+        projectId: '', 
         userId: currentUser.uid,
         startTime: Timestamp.fromDate(now),
         endTime: null,
@@ -401,16 +435,9 @@ const DailyTasks = () => {
         isRunning: true
       };
 
-      const docRef = await addDoc(collection(db, 'timeEntries'), newTimeEntry);
+      await addDoc(collection(db, 'timeEntries'), newTimeEntry);
 
-      const newTask = {
-        id: docRef.id,
-        ...newTimeEntry,
-        startTime: now,
-        endTime: null,
-      } as TimeEntry;
-
-      setTodaysTasks(prev => [newTask, ...prev]);
+      window.location.reload();
 
     } catch (error) {
       console.error('Erreur lors de la création de la tâche:', error);
@@ -430,15 +457,12 @@ const DailyTasks = () => {
   };
 
   const handleEditClick = () => {
-    console.log('handleEditClick called');
     if (selectedTask) {
-      console.log('Selected task:', selectedTask);
       setEditTaskData({
         projectId: selectedTask.projectId,
         task: selectedTask.task || '',
         tags: selectedTask.tags?.join(', ') || '',
       });
-      console.log('Edit task data set:', editTaskData);
       setOpenEditDialog(true);
     }
     handleMenuClose();
@@ -456,14 +480,12 @@ const DailyTasks = () => {
       };
 
       if (selectedTask) {
-        // Mode édition
         await updateDoc(doc(db, 'timeEntries', selectedTask.id), updatedData);
 
         setTodaysTasks(prev =>
           prev.map(task => (task.id === selectedTask.id ? { ...task, ...updatedData } : task))
         );
       } else {
-        // Mode création
         const now = new Date();
         const newTimeEntry = {
           ...updatedData,
@@ -474,9 +496,9 @@ const DailyTasks = () => {
           isRunning: true
         };
 
-        const docRef = await addDoc(collection(db, 'timeEntries'), newTimeEntry);
+        await addDoc(collection(db, 'timeEntries'), newTimeEntry);
         const newTask = {
-          id: docRef.id,
+          id: '',
           ...newTimeEntry,
           startTime: now,
           endTime: null,
@@ -488,8 +510,9 @@ const DailyTasks = () => {
       setOpenEditDialog(false);
       setSelectedTask(null);
       
-      // Mettre à jour la liste des tags
       fetchTimeEntries();
+      window.location.reload();
+
     } catch (error) {
       console.error('Erreur lors de la modification de la tâche:', error);
       setError('Impossible de modifier la tâche');
@@ -509,6 +532,8 @@ const DailyTasks = () => {
         await deleteDoc(doc(db, 'timeEntries', selectedTask.id));
         setTodaysTasks(prev => prev.filter(task => task.id !== selectedTask.id));
 
+        window.location.reload();
+
       } catch (error) {
         console.error('Erreur lors de la suppression de la tâche:', error);
         setError('Impossible de supprimer la tâche');
@@ -520,20 +545,16 @@ const DailyTasks = () => {
   };
 
   const handleEditEntry = (entry: TimeEntry) => {
-    console.log('handleEditEntry called with entry:', entry);
     setSelectedEntry({
       ...entry,
       tags: entry.tags || []
     });
-    console.log('Selected entry set to:', entry);
     setIsNewEntry(false);
     setIsFormOpen(true);
   };
 
   const handleSaveEntry = async (entryData: Partial<TimeEntry>) => {
-    console.log('handleSaveEntry called with data:', entryData);
     if (!currentUser) {
-      console.log('No current user, returning');
       return;
     }
 
@@ -552,16 +573,13 @@ const DailyTasks = () => {
         duration: duration,
         isRunning: false,
       };
-      console.log('Entry to save:', entryToSave);
 
       if (isNewEntry) {
-        console.log('Creating new entry');
         await addDoc(collection(db, 'timeEntries'), {
           ...entryToSave,
           userId: currentUser.uid,
         });
       } else if (selectedEntry) {
-        console.log('Updating existing entry:', selectedEntry.id);
         const entryRef = doc(db, 'timeEntries', selectedEntry.id);
         await updateDoc(entryRef, entryToSave);
       }
@@ -569,7 +587,8 @@ const DailyTasks = () => {
       setIsFormOpen(false);
       setSelectedEntry(null);
       setIsNewEntry(true);
-      await fetchTimeEntries();
+      fetchTimeEntries();
+      window.location.reload();
     } catch (error) {
       console.error('Error saving time entry:', error);
       setError(t('timeTracker.errors.saveFailed'));
@@ -577,12 +596,11 @@ const DailyTasks = () => {
   };
 
   const handleAddEntry = () => {
-    // Créer une nouvelle entrée avec la date sélectionnée
     const startOfDay = new Date(selectedDate);
-    startOfDay.setHours(9, 0, 0, 0); // Par défaut à 9h du matin
+    startOfDay.setHours(9, 0, 0, 0); 
 
     const endOfDay = new Date(selectedDate);
-    endOfDay.setHours(17, 0, 0, 0); // Par défaut à 17h
+    endOfDay.setHours(17, 0, 0, 0); 
 
     setSelectedEntry({
       id: '',
@@ -609,6 +627,8 @@ const DailyTasks = () => {
         await deleteDoc(doc(db, 'timeEntries', timeEntryId));
         setTodaysTasks(prev => prev.filter(task => task.id !== timeEntryId));
 
+        window.location.reload();
+
       } catch (error) {
         console.error('Erreur lors de la suppression de l\'entrée:', error);
         setError('Impossible de supprimer l\'entrée');
@@ -625,7 +645,7 @@ const DailyTasks = () => {
         acc.set(key, {
           projectId: task.projectId,
           task: task.task || '',
-          notes: task.notes || '',  // Ajout des notes
+          notes: task.notes || '',  
           entries: [],
           totalDuration: 0,
           isRunning: false
@@ -635,7 +655,6 @@ const DailyTasks = () => {
       group.entries.push(task);
       group.isRunning = group.isRunning || task.isRunning || false;
 
-      // Calculer la durée totale
       if (task.isRunning) {
         const currentDuration = Math.floor((Date.now() - task.startTime.getTime()) / 1000);
         group.totalDuration += currentDuration;
@@ -711,6 +730,7 @@ const DailyTasks = () => {
       setOpenBulkEditDialog(false);
       setBulkEditData({});
       setSelectedTasks([]);
+      window.location.reload();
     } catch (error) {
       console.error('Erreur lors de la mise à jour groupée:', error);
       setError('Impossible de mettre à jour les tâches');
@@ -1064,7 +1084,6 @@ const DailyTasks = () => {
               id="bulk-project-autocomplete"
               options={projects}
               getOptionLabel={(option) => {
-                // Handle both string and Project object cases
                 if (typeof option === 'string') return option;
                 return option?.name || '';
               }}
