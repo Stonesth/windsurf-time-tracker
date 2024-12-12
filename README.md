@@ -60,20 +60,47 @@ npm run dev
 
 ## Déploiement
 
-Pour déployer l'application sur Firebase Hosting :
+### Prérequis
+- Avoir un compte Firebase
+- Avoir les droits sur le projet Firebase `timetrackingwindsurf`
+
+### Étapes de déploiement
 
 1. Construire l'application frontend :
-```bash
-cd frontend
-npm run build
-```
+   ```bash
+   cd frontend
+   npm run build
+   ```
 
-2. Déployer sur Firebase Hosting :
-```bash
-firebase deploy --only hosting
-```
+2. Vérifier que le dossier `frontend/dist` a été créé et contient les fichiers de build
 
-L'application sera accessible à l'URL fournie par Firebase après le déploiement.
+3. Déployer sur Firebase Hosting (depuis la racine du projet) :
+   ```bash
+   cd ..  # Si vous êtes dans le dossier frontend
+   npx firebase-tools deploy --only hosting
+   ```
+
+L'application sera accessible à l'URL : https://timetrackingwindsurf.web.app
+
+### Vérification du déploiement
+1. Vérifier que l'application est accessible à l'URL
+2. Tester les fonctionnalités principales :
+   - Connexion utilisateur
+   - Création de tâches
+   - Suivi du temps
+   - Visualisation des données
+
+### En cas de problème
+1. Nettoyer le cache npm :
+   ```bash
+   npm cache clean --force
+   ```
+2. Essayer avec une version spécifique de firebase-tools :
+   ```bash
+   npx firebase-tools@12.0.0 deploy --only hosting
+   ```
+3. Vérifier la configuration dans `firebase.json`
+4. S'assurer que tous les fichiers sont bien buildés dans `frontend/dist`
 
 ### Prérequis pour le déploiement
 - Avoir Firebase CLI installé : `npm install -g firebase-tools`
