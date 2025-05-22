@@ -35,7 +35,8 @@ import {
   Home as HomeIcon,
   ExpandMore as ExpandMoreIcon,
   MoreVert as MoreVertIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 import {
   collection,
@@ -137,6 +138,11 @@ const DailyTasks = () => {
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [timelineDialogOpen, setTimelineDialogOpen] = useState(false);
   const [overlappingEntries, setOverlappingEntries] = useState<Set<string>>(new Set());
+  const [timeEditDialogOpen, setTimeEditDialogOpen] = useState(false);
+  const [entryToEdit, setEntryToEdit] = useState<TimeEntry | null>(null);
+  const [editStartTime, setEditStartTime] = useState<Date | null>(null);
+  const [editEndTime, setEditEndTime] = useState<Date | null>(null);
+  const [calculatedDuration, setCalculatedDuration] = useState<number>(0);
   const location = useLocation();
 
   useEffect(() => {
@@ -655,6 +661,79 @@ const DailyTasks = () => {
   const handleCloseTimeline = () => {
     setTimelineDialogOpen(false);
     setOverlappingEntries(new Set());
+    window.location.reload();
+  };
+
+  const handleOpenTimeEdit = (entry: TimeEntry) => {
+    setEntryToEdit(entry);
+    setEditStartTime(entry.startTime);
+    setEditEndTime(entry.endTime || new Date());
+    setCalculatedDuration(entry.duration);
+    setTimeEditDialogOpen(true);
+  };
+
+  const handleCloseTimeEdit = () => {
+    setTimeEditDialogOpen(false);
+    setEntryToEdit(null);
+    setEditStartTime(null);
+    setEditEndTime(null);
+  };
+
+  const calculateNewDuration = (start: Date, end: Date) => {
+    return Math.floor((end.getTime() - start.getTime()) / 1000);
+  };
+
+  const handleStartTimeChange = (newStartTime: Date | null) => {
+    if (newStartTime && editEndTime) {
+      setEditStartTime(newStartTime);
+      setCalculatedDuration(calculateNewDuration(newStartTime, editEndTime));
+    }
+  };
+
+  const handleEndTimeChange = (newEndTime: Date | null) => {
+    if (newEndTime && editStartTime) {
+      setEditEndTime(newEndTime);
+      setCalculatedDuration(calculateNewDuration(editStartTime, newEndTime));
+    }
+  };
+
+  const handleSaveTimeEdit = async () => {
+    if (!entryToEdit || !editStartTime || !editEndTime) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+
+      const updatedDuration = calculateNewDuration(editStartTime, editEndTime);
+      
+      const updatedData = {
+        startTime: Timestamp.fromDate(editStartTime),
+        endTime: Timestamp.fromDate(editEndTime),
+        duration: updatedDuration,
+        isRunning: false
+      };
+
+      await updateDoc(doc(db, 'timeEntries', entryToEdit.id), updatedData);
+
+      // Mettre à jour l'état local
+      setTodaysTasks(prev => 
+        prev.map(task => (
+          task.id === entryToEdit.id 
+            ? { ...task, startTime: editStartTime, endTime: editEndTime, duration: updatedDuration, isRunning: false } 
+            : task
+        ))
+      );
+
+      handleCloseTimeEdit();
+      // Vérifier les chevauchements après la modification
+      const overlaps = detectOverlappingEntries(todaysTasks);
+      setOverlappingEntries(overlaps);
+    } catch (error) {
+      console.error('Erreur lors de la modification des heures:', error);
+      setError('Impossible de modifier les heures');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteTimeEntry = async (timeEntryId: string) => {
@@ -1272,12 +1351,24 @@ const DailyTasks = () => {
                     >
                       <Grid container spacing={2}>
                         <Grid item xs={12} sm={3}>
-                          <Typography variant="subtitle2" color="textSecondary">
-                            {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : t('dailyTasks.running')}
-                          </Typography>
-                          <Typography variant="body2" fontWeight="bold">
-                            {formatDuration(entry.duration)}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Box>
+                              <Typography variant="subtitle2" color="textSecondary">
+                                {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : t('dailyTasks.running')}
+                              </Typography>
+                              <Typography variant="body2" fontWeight="bold">
+                                {formatDuration(entry.duration)}
+                              </Typography>
+                            </Box>
+                            <IconButton 
+                              size="small" 
+                              onClick={() => handleOpenTimeEdit(entry)}
+                              color="primary"
+                              title={t('dailyTasks.editTimes')}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
                         </Grid>
                         <Grid item xs={12} sm={9}>
                           <Typography variant="subtitle1" fontWeight="bold">
@@ -1314,6 +1405,97 @@ const DailyTasks = () => {
         <DialogActions>
           <Button onClick={handleCloseTimeline} color="primary">
             {t('common.close')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Time Edit Dialog */}
+      <Dialog
+        open={timeEditDialogOpen}
+        onClose={handleCloseTimeEdit}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {t('dailyTasks.editTimes')}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DatePicker
+                label={t('dailyTasks.startDate')}
+                value={editStartTime}
+                onChange={(newDate) => {
+                  if (newDate && editStartTime) {
+                    // Conserver l'heure actuelle mais changer la date
+                    const newDateTime = new Date(newDate);
+                    newDateTime.setHours(
+                      editStartTime.getHours(),
+                      editStartTime.getMinutes(),
+                      editStartTime.getSeconds()
+                    );
+                    handleStartTimeChange(newDateTime);
+                  }
+                }}
+                slotProps={{ textField: { fullWidth: true } }}
+              />
+              <TimePicker
+                label={t('dailyTasks.startTime')}
+                value={editStartTime}
+                onChange={handleStartTimeChange}
+                slotProps={{ 
+                  textField: { fullWidth: true }
+                }}
+                views={['hours', 'minutes', 'seconds']}
+                ampm={false}
+                format="HH:mm:ss"
+              />
+              <DatePicker
+                label={t('dailyTasks.endDate')}
+                value={editEndTime}
+                onChange={(newDate) => {
+                  if (newDate && editEndTime) {
+                    // Conserver l'heure actuelle mais changer la date
+                    const newDateTime = new Date(newDate);
+                    newDateTime.setHours(
+                      editEndTime.getHours(),
+                      editEndTime.getMinutes(),
+                      editEndTime.getSeconds()
+                    );
+                    handleEndTimeChange(newDateTime);
+                  }
+                }}
+                slotProps={{ textField: { fullWidth: true } }}
+              />
+              <TimePicker
+                label={t('dailyTasks.endTime')}
+                value={editEndTime}
+                onChange={handleEndTimeChange}
+                slotProps={{ 
+                  textField: { fullWidth: true }
+                }}
+                views={['hours', 'minutes', 'seconds']}
+                ampm={false}
+                format="HH:mm:ss"
+              />
+            </LocalizationProvider>
+            
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle1">
+                {t('dailyTasks.calculatedDuration')}:
+              </Typography>
+              <Typography variant="h6">
+                {formatDuration(calculatedDuration)}
+              </Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseTimeEdit}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleSaveTimeEdit} color="primary" variant="contained">
+            {t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>
