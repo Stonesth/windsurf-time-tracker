@@ -136,6 +136,7 @@ const DailyTasks = () => {
   const [isNewEntry, setIsNewEntry] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [timelineDialogOpen, setTimelineDialogOpen] = useState(false);
+  const [overlappingEntries, setOverlappingEntries] = useState<Set<string>>(new Set());
   const location = useLocation();
 
   useEffect(() => {
@@ -619,12 +620,41 @@ const DailyTasks = () => {
     setIsFormOpen(true);
   };
 
+  const detectOverlappingEntries = (entries: TimeEntry[]): Set<string> => {
+    const overlaps = new Set<string>();
+    
+    // Trier les entrées par heure de début
+    const sortedEntries = [...entries].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    
+    // Vérifier les chevauchements
+    for (let i = 0; i < sortedEntries.length; i++) {
+      const current = sortedEntries[i];
+      if (!current.endTime) continue; // Ignorer les entrées en cours
+      
+      for (let j = i + 1; j < sortedEntries.length; j++) {
+        const next = sortedEntries[j];
+        if (!next.endTime) continue; // Ignorer les entrées en cours
+        
+        // Si l'heure de début de la prochaine entrée est avant l'heure de fin de l'entrée actuelle
+        if (next.startTime.getTime() < current.endTime.getTime()) {
+          overlaps.add(current.id);
+          overlaps.add(next.id);
+        }
+      }
+    }
+    
+    return overlaps;
+  };
+
   const handleOpenTimeline = () => {
+    const overlaps = detectOverlappingEntries(todaysTasks);
+    setOverlappingEntries(overlaps);
     setTimelineDialogOpen(true);
   };
 
   const handleCloseTimeline = () => {
     setTimelineDialogOpen(false);
+    setOverlappingEntries(new Set());
   };
 
   const handleDeleteTimeEntry = async (timeEntryId: string) => {
@@ -1235,7 +1265,9 @@ const DailyTasks = () => {
                         p: 2, 
                         mb: 2, 
                         borderLeft: '4px solid', 
-                        borderColor: entry.isRunning ? 'secondary.main' : 'primary.main' 
+                        borderColor: overlappingEntries.has(entry.id) ? 'error.main' : (entry.isRunning ? 'secondary.main' : 'primary.main'),
+                        bgcolor: overlappingEntries.has(entry.id) ? 'error.light' : 'inherit',
+                        color: overlappingEntries.has(entry.id) ? 'error.contrastText' : 'inherit'
                       }}
                     >
                       <Grid container spacing={2}>
