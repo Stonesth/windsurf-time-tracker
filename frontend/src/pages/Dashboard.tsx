@@ -9,17 +9,56 @@ import {
   Alert,
   CircularProgress,
   Card,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
 } from '@mui/material';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import TimeStats from '../components/time/TimeStats';
 import WeeklyReport from '../components/time/WeeklyReport';
 import AdvancedStats from '../components/statistics/AdvancedStats';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, orderBy, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { formatDuration } from '../utils/timeUtils';
 import { canWrite } from '../utils/roleUtils';
 import { useTranslation } from 'react-i18next';
+// Nous utilisons sx prop au lieu de makeStyles
+import { User } from 'firebase/auth';
+
+// Composant DateSelector simple
+interface DateSelectorProps {
+  onChange: (date: Date) => void;
+}
+
+const DateSelector: React.FC<DateSelectorProps> = ({ onChange }) => {
+  const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.value) {
+      onChange(new Date(event.target.value));
+    }
+  };
+
+  const today = new Date().toISOString().split('T')[0];
+
+  return (
+    <input
+      type="date"
+      defaultValue={today}
+      onChange={handleDateChange}
+      style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+    />
+  );
+};
+
+interface TimeEntryBasic {
+  id: string;
+  startTime: Date;
+  endTime: Date | null;
+  duration: number;
+}
 
 interface DashboardStats {
   todayTime: number;
@@ -30,12 +69,39 @@ interface DashboardStats {
   activeTasks: number;
   timeData: Array<{ date: string; duration: number }>;
   projectData: Array<{ projectName: string; totalTime: number }>;
+  daysWithOverlaps: Array<{ date: string; count: number }>;
 }
+
+// Styles en constantes
+const paperStyle = {
+  p: 2,
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+const listItemStyle = {
+  border: '1px solid #eee',
+  mb: 1,
+  borderRadius: 1,
+};
+
+const warningTextStyle = {
+  color: 'red',
+  fontWeight: 'bold',
+};
 
 const Dashboard: React.FC = () => {
   const { currentUser, userRole } = useAuth();
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = React.useState(true);
+  const [selectedDate, setSelectedDate] = React.useState(new Date());
+  
+  // Fonction pour gérer le changement de date
+  const handleDateChange = (date: Date) => {
+    setSelectedDate(date);
+    // Ici, on pourrait naviguer vers la page DailyTasks avec cette date
+    // Par exemple : navigate(`/daily?date=${date.toISOString().split('T')[0]}`)
+  };
   const [stats, setStats] = React.useState<DashboardStats>({
     todayTime: 0,
     weekTime: 0,
@@ -45,6 +111,7 @@ const Dashboard: React.FC = () => {
     activeTasks: 0,
     timeData: [],
     projectData: [],
+    daysWithOverlaps: [],
   });
 
   const fetchStats = React.useCallback(async () => {
@@ -75,6 +142,9 @@ const Dashboard: React.FC = () => {
       const uniqueTasks = new Set();
       const projectTimes = new Map();
       const dailyTimes = new Map();
+      
+      // Structure pour stocker les entrées par jour et détecter les chevauchements
+      const entriesByDay = new Map<string, TimeEntryBasic[]>();
 
       const now = new Date();
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -95,13 +165,29 @@ const Dashboard: React.FC = () => {
       timeEntriesSnapshot.docs.forEach(doc => {
         const data = doc.data();
         const startTime = data.startTime.toDate();
+        const endTime = data.endTime ? data.endTime.toDate() : null;
         const duration = data.duration || 0;
         const projectId = data.projectId;
+        const entry = {
+          id: doc.id,
+          startTime,
+          endTime,
+          duration
+        };
+
+        // Regrouper les entrées par jour pour la détection des chevauchements
+        const dateStr = startTime.toISOString().split('T')[0];
+        if (!entriesByDay.has(dateStr)) {
+          entriesByDay.set(dateStr, []);
+        }
+        const dayEntries = entriesByDay.get(dateStr);
+        if (dayEntries) {
+          dayEntries.push(entry);
+        }
 
         // Temps du jour et de la semaine
         if (startTime >= startOfWeek) {
           weekTime += duration;
-          const dateStr = startTime.toISOString().split('T')[0];
           dailyTimes.set(dateStr, (dailyTimes.get(dateStr) || 0) + duration);
           
           if (startTime >= startOfToday) {
@@ -144,6 +230,49 @@ const Dashboard: React.FC = () => {
       // Trier les projets par temps total décroissant et prendre les 5 premiers
       projectData.sort((a, b) => b.totalTime - a.totalTime);
       const top5Projects = projectData.slice(0, 5);
+      
+      // Fonction pour détecter les chevauchements similaire à celle dans DailyTasks.tsx
+      const detectOverlaps = (entries: TimeEntryBasic[]): Set<string> => {
+        const overlaps = new Set<string>();
+        
+        // Trier les entrées par heure de début
+        const sortedEntries = [...entries].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+        
+        // Vérifier les chevauchements
+        for (let i = 0; i < sortedEntries.length; i++) {
+          const current = sortedEntries[i];
+          if (!current.endTime) continue; // Ignorer les entrées en cours
+          
+          for (let j = i + 1; j < sortedEntries.length; j++) {
+            const next = sortedEntries[j];
+            if (!next.endTime) continue; // Ignorer les entrées en cours
+            
+            // Si l'heure de début de la prochaine entrée est avant l'heure de fin de l'entrée actuelle
+            if (next.startTime.getTime() < current.endTime.getTime()) {
+              overlaps.add(current.id);
+              overlaps.add(next.id);
+            }
+          }
+        }
+        
+        return overlaps;
+      };
+      
+      // Parcourir chaque jour et détecter les chevauchements
+      const daysWithOverlaps: Array<{ date: string; count: number }> = [];
+      
+      entriesByDay.forEach((entries, date) => {
+        const overlaps = detectOverlaps(entries);
+        if (overlaps.size > 0) {
+          daysWithOverlaps.push({
+            date,
+            count: overlaps.size / 2 // Diviser par 2 car chaque chevauchement est compté deux fois (une fois pour chaque entrée)
+          });
+        }
+      });
+      
+      // Trier les jours avec chevauchements par date décroissante (le plus récent d'abord)
+      daysWithOverlaps.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       setStats({
         todayTime,
@@ -154,6 +283,7 @@ const Dashboard: React.FC = () => {
         activeTasks: uniqueTasks.size,
         timeData,
         projectData: top5Projects,
+        daysWithOverlaps,
       });
     } catch (error) {
       console.error('Erreur lors de la récupération des statistiques:', error);
@@ -269,6 +399,49 @@ const Dashboard: React.FC = () => {
             <WeeklyReport />
           </Paper>
         </Grid>
+        
+        <Grid item xs={12} md={6} lg={4}>
+          <Paper sx={paperStyle}>
+            <Typography variant="h6" gutterBottom>
+              {t('Sélectionner une date')}
+            </Typography>
+            <DateSelector onChange={handleDateChange} />
+          </Paper>
+        </Grid>
+        
+        {stats.daysWithOverlaps.length > 0 && (
+          <Grid item xs={12} md={6} lg={4}>
+            <Paper sx={paperStyle}>
+              <Typography variant="h6" gutterBottom sx={warningTextStyle}>
+                {t('Jours avec des chevauchements')}
+              </Typography>
+              <List>
+                {stats.daysWithOverlaps.map((day, index) => {
+                  const date = new Date(day.date);
+                  const formattedDate = new Intl.DateTimeFormat('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  }).format(date);
+                  
+                  return (
+                    <ListItem button key={index} onClick={() => handleDateChange(date)} sx={listItemStyle}>
+                      <ListItemText 
+                        primary={formattedDate} 
+                        secondary={`${day.count} ${day.count > 1 ? 'chevauchements' : 'chevauchement'}`} 
+                      />
+                      <ListItemSecondaryAction>
+                        <IconButton edge="end" aria-label="voir" onClick={() => handleDateChange(date)}>
+                          <VisibilityIcon />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  );
+                })}
+              </List>
+            </Paper>
+          </Grid>
+        )}
       </Grid>
     </Container>
   );
