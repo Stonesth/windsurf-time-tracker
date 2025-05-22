@@ -863,7 +863,7 @@ const DailyTasks = () => {
             onClick={handleOpenTimeline}
             fullWidth={isMobile}
           >
-            {t('dailyTasks.timelineView', 'Timeline')}
+            {t('dailyTasks.timelineView')}
           </Button>
         </Box>
       </Box>
@@ -1215,13 +1215,13 @@ const DailyTasks = () => {
         fullWidth
       >
         <DialogTitle>
-          {t('dailyTasks.timelineTitle', 'Chronologie des entrées')}
+          {t('dailyTasks.timelineTitle')}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ py: 2 }}>
             {todaysTasks.length === 0 ? (
               <Typography variant="body1" align="center">
-                {t('dailyTasks.noEntries', 'Aucune entrée pour cette journée')}
+                {t('dailyTasks.noEntries')}
               </Typography>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column' }}>
