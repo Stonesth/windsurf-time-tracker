@@ -814,8 +814,8 @@ const DailyTasks = () => {
             {t('dailyTasks.title')}
           </Typography>
         </Box>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <TotalTimeDisplay id="total-time-display" />
+        <Box display="flex" justifyContent="space-between" alignItems="center" id="total-time-display">
+          <TotalTimeDisplay specificDate={selectedDate} showTotal={true} />
         </Box>
 
         <Box
