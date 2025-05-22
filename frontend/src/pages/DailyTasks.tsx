@@ -138,6 +138,7 @@ const DailyTasks = () => {
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [timelineDialogOpen, setTimelineDialogOpen] = useState(false);
   const [overlappingEntries, setOverlappingEntries] = useState<Set<string>>(new Set());
+  const [hasOverlappingEntries, setHasOverlappingEntries] = useState(false);
   const [timeEditDialogOpen, setTimeEditDialogOpen] = useState(false);
   const [entryToEdit, setEntryToEdit] = useState<TimeEntry | null>(null);
   const [editStartTime, setEditStartTime] = useState<Date | null>(null);
@@ -266,6 +267,11 @@ const DailyTasks = () => {
       });
 
       setTodaysTasks(entries);
+      
+      // Vérifier s'il y a des chevauchements entre les entrées
+      const overlaps = detectOverlappingEntries(entries);
+      setOverlappingEntries(overlaps);
+      setHasOverlappingEntries(overlaps.size > 0);
     } catch (err) {
       console.error('Error fetching time entries:', err);
       setError(t('dailyTasks.error'));
@@ -661,7 +667,10 @@ const DailyTasks = () => {
   const handleCloseTimeline = () => {
     setTimelineDialogOpen(false);
     setOverlappingEntries(new Set());
-    window.location.reload();
+    setHasOverlappingEntries(false);
+    
+    // Rafraîchir les données tout en conservant la date sélectionnée
+    fetchTimeEntries();
   };
 
   const handleOpenTimeEdit = (entry: TimeEntry) => {
@@ -967,7 +976,7 @@ const DailyTasks = () => {
           <Button
             id="timeline-view-button"
             variant="outlined"
-            color="secondary"
+            color={hasOverlappingEntries ? "error" : "secondary"}
             startIcon={<Timer />}
             onClick={handleOpenTimeline}
             fullWidth={isMobile}
