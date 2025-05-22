@@ -10,7 +10,22 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "headers": [
+      {
+        "source": "/locales/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      }
+    ],
     "rewrites": [
+      {
+        "source": "/locales/**",
+        "destination": "/locales/**"
+      },
       {
         "source": "**",
         "destination": "/index.html"
