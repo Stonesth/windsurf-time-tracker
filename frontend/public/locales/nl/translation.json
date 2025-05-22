@@ -18,7 +18,8 @@
     "unknown": "Onbekend",
     "pressEnter": "Druk op Enter om te zoeken",
     "refresh": "Vernieuwen",
-    "refreshing": "Vernieuwen..."
+    "refreshing": "Vernieuwen...",
+    "close": "Sluiten"
   },
   "nav": {
     "timeTracker": "Tijdregistratie",
@@ -55,7 +56,7 @@
     "totalTime": "Totale Tijd",
     "timeEntries": "Tijdregistraties",
     "searchPlaceholder": "Zoek projecten...",
-    "status": {
+    "statusOptions": {
       "active": "Actief",
       "completed": "Voltooid",
       "onHold": "In de Wacht"
@@ -73,6 +74,7 @@
     "title": "Dagelijkse Taken",
     "noTasks": "Geen taken voor vandaag",
     "addTask": "Taak Toevoegen",
+    "addEntry": "Invoer Toevoegen",
     "editEntry": "Invoer Bewerken",
     "project": "Project",
     "taskName": "Taaknaam",
@@ -89,7 +91,13 @@
     "noProject": "Geen Project",
     "entryDetails": "Invoer Details",
     "editGroup": "Groep Bewerken",
-    "searchProject": "Zoek een project..."
+    "searchProject": "Zoek een project...",
+    "timelineView": "Tijdlijn",
+    "timelineTitle": "Tijdlijn van tijdregistraties",
+    "noEntries": "Geen invoeren voor deze dag",
+    "untitled": "Zonder titel",
+    "confirmDelete": "Weet je zeker dat je deze invoer wilt verwijderen?",
+    "error": "Fout bij het laden van taken"
   },
   "taskSearch": {
     "title": "Taak zoeken",

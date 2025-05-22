@@ -18,7 +18,8 @@
     "unknown": "Inconnu",
     "pressEnter": "Appuyez sur Entrée pour rechercher",
     "refresh": "Rafraîchir",
-    "refreshing": "Rafraîchissement..."
+    "refreshing": "Rafraîchissement...",
+    "close": "Fermer"
   },
   "nav": {
     "timeTracker": "Suivi du Temps",
@@ -68,7 +69,7 @@
     "deadline": "Date limite",
     "totalTime": "Temps total",
     "searchPlaceholder": "Rechercher un projet...",
-    "status": {
+    "statusOptions": {
       "active": "Actif",
       "completed": "Terminé",
       "onHold": "En pause"
@@ -104,7 +105,13 @@
     "noProject": "Aucun projet",
     "entryDetails": "Détails de l'entrée",
     "editGroup": "Modifier le groupe",
-    "searchProject": "Rechercher un projet..."
+    "searchProject": "Rechercher un projet...",
+    "timelineView": "Chronologie",
+    "timelineTitle": "Chronologie des entrées",
+    "noEntries": "Aucune entrée pour cette journée",
+    "untitled": "Sans titre",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette entrée ?",
+    "error": "Erreur lors du chargement des tâches"
   },
   "taskSearch": {
     "title": "Recherche de tâches",
