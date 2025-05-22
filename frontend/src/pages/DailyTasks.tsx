@@ -135,6 +135,7 @@ const DailyTasks = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isNewEntry, setIsNewEntry] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
+  const [timelineDialogOpen, setTimelineDialogOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -618,6 +619,14 @@ const DailyTasks = () => {
     setIsFormOpen(true);
   };
 
+  const handleOpenTimeline = () => {
+    setTimelineDialogOpen(true);
+  };
+
+  const handleCloseTimeline = () => {
+    setTimelineDialogOpen(false);
+  };
+
   const handleDeleteTimeEntry = async (timeEntryId: string) => {
     if (window.confirm(t('dailyTasks.confirmDelete'))) {
       try {
@@ -841,8 +850,20 @@ const DailyTasks = () => {
             startIcon={<AddIcon />}
             onClick={handleAddEntry}
             fullWidth={isMobile}
+            sx={{ mr: 1 }}
           >
             {t('dailyTasks.addEntry')}
+          </Button>
+          
+          <Button
+            id="timeline-view-button"
+            variant="outlined"
+            color="secondary"
+            startIcon={<Timer />}
+            onClick={handleOpenTimeline}
+            fullWidth={isMobile}
+          >
+            {t('dailyTasks.timelineView', 'Timeline')}
           </Button>
         </Box>
       </Box>
@@ -1182,6 +1203,85 @@ const DailyTasks = () => {
           </Button>
           <Button onClick={handleBulkEditSave} variant="contained" color="primary">
             {t('common.save')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Timeline Dialog */}
+      <Dialog
+        open={timelineDialogOpen}
+        onClose={handleCloseTimeline}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {t('dailyTasks.timelineTitle', 'Chronologie des entrées')}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2 }}>
+            {todaysTasks.length === 0 ? (
+              <Typography variant="body1" align="center">
+                {t('dailyTasks.noEntries', 'Aucune entrée pour cette journée')}
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                {[...todaysTasks]
+                  .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
+                  .map((entry) => (
+                    <Paper 
+                      key={entry.id} 
+                      elevation={2} 
+                      sx={{ 
+                        p: 2, 
+                        mb: 2, 
+                        borderLeft: '4px solid', 
+                        borderColor: entry.isRunning ? 'secondary.main' : 'primary.main' 
+                      }}
+                    >
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={3}>
+                          <Typography variant="subtitle2" color="textSecondary">
+                            {formatTimeToLocale(entry.startTime)} - {entry.endTime ? formatTimeToLocale(entry.endTime) : t('dailyTasks.running')}
+                          </Typography>
+                          <Typography variant="body2" fontWeight="bold">
+                            {formatDuration(entry.duration)}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={9}>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            {entry.task || t('dailyTasks.untitled')}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            {projects.find(p => p.id === entry.projectId)?.name || t('dailyTasks.noProject')}
+                          </Typography>
+                          {entry.notes && (
+                            <Typography variant="body2" sx={{ mt: 1 }}>
+                              {entry.notes}
+                            </Typography>
+                          )}
+                          {entry.tags && entry.tags.length > 0 && (
+                            <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {entry.tags.map(tag => (
+                                <Chip 
+                                  key={`timeline-tag-${entry.id}-${tag}`} 
+                                  label={tag} 
+                                  size="small" 
+                                  variant="outlined" 
+                                />
+                              ))}
+                            </Box>
+                          )}
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                  ))}
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseTimeline} color="primary">
+            {t('common.close')}
           </Button>
         </DialogActions>
       </Dialog>
