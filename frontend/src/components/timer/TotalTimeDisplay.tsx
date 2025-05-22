@@ -15,10 +15,13 @@ const formatTotalTime = (seconds: number) => {
 
 interface TotalTimeDisplayProps {
   variant?: 'default' | 'navbar';
+  specificDate?: Date;
+  showTotal?: boolean;
 }
 
-const TotalTimeDisplay: React.FC<TotalTimeDisplayProps> = ({ variant = 'default' }) => {
+const TotalTimeDisplay: React.FC<TotalTimeDisplayProps> = ({ variant = 'default', specificDate, showTotal = false }) => {
   const [totalTime, setTotalTime] = useState(0);
+  const [totalDayTime, setTotalDayTime] = useState(0);
   const { currentUser } = useAuth();
 
   const calculateTotalTime = async () => {
@@ -53,18 +56,64 @@ const TotalTimeDisplay: React.FC<TotalTimeDisplayProps> = ({ variant = 'default'
       return 0;
     }
   };
+  
+  const calculateDayTotalTime = async () => {
+    if (!currentUser || !specificDate) return 0;
+    
+    // Définir le début et la fin de la journée spécifiée
+    const dayStart = new Date(specificDate);
+    dayStart.setHours(0, 0, 0, 0);
+    
+    const dayEnd = new Date(specificDate);
+    dayEnd.setHours(23, 59, 59, 999);
+    
+    try {
+      const tasksQuery = query(
+        collection(db, 'timeEntries'),
+        where('userId', '==', currentUser.uid),
+        where('startTime', '>=', Timestamp.fromDate(dayStart)),
+        where('startTime', '<=', Timestamp.fromDate(dayEnd))
+      );
+      
+      const querySnapshot = await getDocs(tasksQuery);
+      let total = 0;
+      
+      querySnapshot.forEach((doc) => {
+        const task = doc.data();
+        if (task.duration) {
+          total += task.duration;
+        } else if (task.isRunning && task.startTime) {
+          // Pour les tâches en cours, calculer la durée jusqu'à maintenant
+          const now = new Date();
+          const taskStartTime = task.startTime.toDate();
+          const currentDuration = Math.floor((now.getTime() - taskStartTime.getTime()) / 1000);
+          total += currentDuration;
+        }
+      });
+      
+      return total;
+    } catch (error) {
+      console.error('Error calculating day total time:', error);
+      return 0;
+    }
+  };
 
   useEffect(() => {
     const updateTotalTime = async () => {
       const time = await calculateTotalTime();
       setTotalTime(time);
+      
+      if (showTotal && specificDate) {
+        const dayTotal = await calculateDayTotalTime();
+        setTotalDayTime(dayTotal);
+      }
     };
 
     const interval = setInterval(updateTotalTime, 1000);
     updateTotalTime();
 
     return () => clearInterval(interval);
-  }, [currentUser]);
+  }, [currentUser, specificDate, showTotal]);
 
   if (variant === 'navbar') {
     return (
@@ -87,19 +136,48 @@ const TotalTimeDisplay: React.FC<TotalTimeDisplayProps> = ({ variant = 'default'
   return (
     <Box 
       sx={{ 
-        backgroundColor: 'primary.main',
-        color: 'white',
-        padding: '8px 16px',
-        borderRadius: '4px',
         display: 'flex',
-        alignItems: 'center',
-        gap: 1
+        gap: 2,
+        alignItems: 'center'
       }}
     >
-      <TimerIcon fontSize="small" />
-      <Typography variant="h6" component="span">
-        {formatTotalTime(totalTime)}
-      </Typography>
+      {/* Compteur violet (temps total de la journée) */}
+      {showTotal && specificDate && (
+        <Box 
+          sx={{ 
+            backgroundColor: 'secondary.main',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          <TimerIcon fontSize="small" />
+          <Typography variant="h6" component="span">
+            {formatTotalTime(totalDayTime)}
+          </Typography>
+        </Box>
+      )}
+      
+      {/* Compteur bleu (temps aujourd'hui) */}
+      <Box 
+        sx={{ 
+          backgroundColor: 'primary.main',
+          color: 'white',
+          padding: '8px 16px',
+          borderRadius: '4px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}
+      >
+        <TimerIcon fontSize="small" />
+        <Typography variant="h6" component="span">
+          {formatTotalTime(totalTime)}
+        </Typography>
+      </Box>
     </Box>
   );
 };
