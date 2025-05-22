@@ -19,7 +19,8 @@
     "pressEnter": "Appuyez sur Entrée pour rechercher",
     "refresh": "Rafraîchir",
     "refreshing": "Rafraîchissement...",
-    "close": "Fermer"
+    "close": "Fermer",
+    "start": "Démarrer"
   },
   "nav": {
     "timeTracker": "Suivi du Temps",

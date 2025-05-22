@@ -19,7 +19,8 @@
     "pressEnter": "Druk op Enter om te zoeken",
     "refresh": "Vernieuwen",
     "refreshing": "Vernieuwen...",
-    "close": "Sluiten"
+    "close": "Sluiten",
+    "start": "Start"
   },
   "nav": {
     "timeTracker": "Tijdregistratie",

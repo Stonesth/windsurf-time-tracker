@@ -19,7 +19,8 @@
     "pressEnter": "Press Enter to search",
     "refresh": "Refresh",
     "refreshing": "Refreshing...",
-    "close": "Close"
+    "close": "Close",
+    "start": "Start"
   },
   "nav": {
     "timeTracker": "Time Tracker",
