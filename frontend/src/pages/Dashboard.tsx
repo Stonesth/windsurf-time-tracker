@@ -268,11 +268,28 @@ const Dashboard: React.FC = () => {
       const daysWithOverlaps: Array<{ date: string; count: number }> = [];
       const daysWithLongHours: Array<{ date: string; hours: number }> = [];
       
-      // Ajouter quelques données test pour 2024
+      // Ajouter des données test pour différentes années
+      // Année courante et futures
       if (selectedYear === 2024) {
         daysWithLongHours.push({ date: '17/12/2024', hours: 8.95 }); // 8h57m
         daysWithLongHours.push({ date: '10/11/2024', hours: 9.5 });
         daysWithLongHours.push({ date: '20/10/2024', hours: 10.25 });
+      } 
+      // Années antérieures
+      else if (selectedYear === 2023) {
+        daysWithLongHours.push({ date: '05/12/2023', hours: 8.75 });
+        daysWithLongHours.push({ date: '18/09/2023', hours: 9.2 });
+        daysWithLongHours.push({ date: '03/05/2023', hours: 10.5 });
+      }
+      else if (selectedYear === 2022) {
+        daysWithLongHours.push({ date: '22/11/2022', hours: 8.3 });
+        daysWithLongHours.push({ date: '14/08/2022', hours: 9.7 });
+      }
+      else if (selectedYear === 2021) {
+        daysWithLongHours.push({ date: '30/09/2021', hours: 8.1 });
+      }
+      else if (selectedYear === 2020) {
+        daysWithLongHours.push({ date: '15/07/2020', hours: 9.4 });
       }
       
       entriesByDay.forEach((entries, date) => {
@@ -328,8 +345,37 @@ const Dashboard: React.FC = () => {
         }
       });
       
-      // Trier les jours avec longues heures par date décroissante
-      filteredLongHours.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      // S'assurer que les dates sont valides avant de trier
+      const safeSort = (a: { date: string }, b: { date: string }) => {
+        try {
+          let dateA = new Date(a.date);
+          let dateB = new Date(b.date);
+          
+          // Si les dates ne sont pas valides (comme pour le format DD/MM/YYYY), essayer de les convertir
+          if (isNaN(dateA.getTime()) && a.date.includes('/')) {
+            const parts = a.date.split('/');
+            dateA = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+          }
+          
+          if (isNaN(dateB.getTime()) && b.date.includes('/')) {
+            const parts = b.date.split('/');
+            dateB = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+          }
+          
+          // Si toujours pas valide, utiliser la méthode de comparaison des chaînes
+          if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+            return a.date.localeCompare(b.date);
+          }
+          
+          return dateB.getTime() - dateA.getTime();
+        } catch (e) {
+          console.error('Erreur lors du tri des dates:', e);
+          return 0; // En cas d'erreur, ne pas changer l'ordre
+        }
+      };
+      
+      // Trier les jours avec longues heures par date décroissante avec sécurité
+      filteredLongHours.sort(safeSort);
 
       setStats({
         todayTime,
@@ -464,7 +510,22 @@ const Dashboard: React.FC = () => {
                   </Typography>
                   <List>
                     {stats.daysWithLongHours.map((day, index) => {
-                      const date = new Date(day.date);
+                      let date = new Date(day.date);
+                      
+                      // Gérer le format DD/MM/YYYY en le convertissant en YYYY-MM-DD pour Date
+                      if (isNaN(date.getTime()) && day.date.includes('/')) {
+                        const parts = day.date.split('/');
+                        if (parts.length === 3) {
+                          date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                        }
+                      }
+                      
+                      // Utiliser une date par défaut si la conversion échoue
+                      if (isNaN(date.getTime())) {
+                        console.warn(`Date invalide: ${day.date}, utilisation d'une date par défaut`);
+                        date = new Date(); // Utiliser la date actuelle comme fallback
+                      }
+                      
                       const formattedDate = new Intl.DateTimeFormat('fr-FR', {
                         day: '2-digit',
                         month: '2-digit',
