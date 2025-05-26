@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Box, Typography, TextField, Button, Paper, Grid, CircularProgress } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
@@ -55,10 +55,13 @@ const SimplePieChart: React.FC<SimplePieChartProps> = ({
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <Paper elevation={3} sx={{ p: 1, backgroundColor: 'white' }}>
-          <Typography variant="subtitle2">{data.name}</Typography>
+        <Paper elevation={3} sx={{ p: 1.5, backgroundColor: 'white', maxWidth: 'none', minWidth: '200px' }}>
+          <Typography variant="subtitle2" sx={{ wordBreak: 'break-word', fontWeight: 'bold' }}>{data.name}</Typography>
           <Typography variant="body2">
             {`${t('hours')}: ${(data.value / 3600).toFixed(2)}`}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+            {`${(payload[0].percent * 100).toFixed(1)}% du total`}
           </Typography>
         </Paper>
       );
@@ -67,7 +70,7 @@ const SimplePieChart: React.FC<SimplePieChartProps> = ({
   };
 
   return (
-    <Box sx={{ width: '100%', height: 400, p: 2 }}>
+    <Box sx={{ width: '100%', height: 'auto', minHeight: 500, p: 2 }}>
       <Typography variant="h6" align="center" gutterBottom>
         {title}
       </Typography>
@@ -124,28 +127,54 @@ const SimplePieChart: React.FC<SimplePieChartProps> = ({
           </Typography>
         </Box>
       ) : (
-        <ResponsiveContainer width="100%" height={250}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {data.map((entry, index) => (
-                <Cell 
-                  key={`cell-${entry.id}`} 
-                  fill={entry.color || COLORS[index % COLORS.length]} 
+        <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+          {/* Graphique */}
+          <Box sx={{ height: '300px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={true}
+                  label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {data.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${entry.id}`} 
+                      fill={entry.color || COLORS[index % COLORS.length]} 
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </Box>
+          
+          {/* Légendes en colonne */}
+          <Box sx={{ mt: 2, p: 1, maxHeight: '200px', overflowY: 'auto', width: '100%' }}>
+            {data.map((entry, index) => (
+              <Box key={`legend-${entry.id}`} sx={{ display: 'flex', alignItems: 'flex-start', mb: 1, width: '100%' }}>
+                <Box 
+                  sx={{ 
+                    width: 16, 
+                    height: 16, 
+                    backgroundColor: entry.color || COLORS[index % COLORS.length],
+                    mr: 1,
+                    flexShrink: 0,
+                    mt: 0.5
+                  }} 
                 />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+                <Typography variant="body2" sx={{ wordBreak: 'break-word', width: 'calc(100% - 25px)' }}>
+                  {entry.name} ({(entry.value / 3600).toFixed(1)}h - {Math.round((entry.value / data.reduce((sum, item) => sum + item.value, 0)) * 100)}%)
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
       )}
     </Box>
   );

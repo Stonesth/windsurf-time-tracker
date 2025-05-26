@@ -213,7 +213,7 @@ const PieChartDemo: React.FC = () => {
               console.log(`Projet ${projectId} non trouvé, utilisation d'un nom générique`);
               projects.set(projectId, {
                 id: projectId,
-                name: `Projet ${projectId.substring(0, 6)}...`,
+                name: `Projet ${projectId}`,
                 userId: currentUser.uid,
                 color: colors[colorIndex]
               });
@@ -258,10 +258,8 @@ const PieChartDemo: React.FC = () => {
         
         const projectName = project.name || t('unknown_project');
         
-        // Formater le nom du projet pour l'affichage
-        const formattedName = projectName.length > 12 
-          ? `${projectName.substring(0, 12)}...` 
-          : projectName;
+        // Utiliser le nom complet du projet
+        const formattedName = projectName;
         
         // Utiliser la couleur du projet si elle existe, sinon utiliser une couleur par défaut
         const projectColor = project.color || PROJECT_COLORS[chartData.length % PROJECT_COLORS.length];
