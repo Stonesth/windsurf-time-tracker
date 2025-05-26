@@ -24,7 +24,7 @@ import {
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import WeeklyReport from '../components/time/WeeklyReport';
 import AdvancedStats from '../components/statistics/AdvancedStats';
-import TopProjectsPieChart from '../components/statistics/TopProjectsPieChart';
+// L'import de TopProjectsPieChart a été supprimé car le composant n'est plus utilisé
 import SimplePieChart from '../components/statistics/SimplePieChart';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -128,7 +128,7 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState(true);
   const [hourThreshold, setHourThreshold] = React.useState<number>(7); // Seuil par défaut: 7 heures
   const [selectedYear, setSelectedYear] = React.useState<number>(new Date().getFullYear()); // Année par défaut: année courante
-  const [selectedPeriod, setSelectedPeriod] = React.useState<string>('thisWeek'); // Période par défaut
+  // L'état selectedPeriod a été supprimé car remplacé par chartPeriod
   
   // États pour le graphique en camembert
   const [chartData, setChartData] = useState<ChartData[]>([]);
@@ -157,21 +157,7 @@ const Dashboard: React.FC = () => {
     setSelectedYear(Number(event.target.value));
   };
 
-  // Fonction pour gérer le changement de période dans TopProjectsPieChart
-  const handlePeriodChange = (period: string) => {
-    console.log('🔍 Dashboard - période changée:', period);
-    setSelectedPeriod(period);
-    
-    // Test simple - Inverser l'ordre des projets pour vérifier que le graphique réagit
-    if (period === 'thisWeek') {
-      const reversedProjects = [...stats.projectData].reverse();
-      console.log('🔍 Dashboard - INVERSER les projets pour test visuel');
-      setStats(prevStats => ({
-        ...prevStats,
-        projectData: reversedProjects
-      }));
-    }
-  };
+  // La fonction handlePeriodChange a été supprimée car remplacée par handleChartPeriodChange
 
   // Fonction pour récupérer les données de projets
   const fetchProjects = async (): Promise<Map<string, Project>> => {
@@ -451,110 +437,9 @@ const Dashboard: React.FC = () => {
     }
   }, [currentUser, t]);
   
-  // Fonction pour gérer le changement de plage de dates personnalisée
-  const handleDateRangeChange = async (startDate: string, endDate: string) => {
-    if (!currentUser) return;
-    
-    // Mettre à jour les données du graphique en camembert
-    fetchTimeEntriesForChart(startDate, endDate);
-    
-    console.log('🕐 DASHBOARD - Filtrage par dates réelles:', { startDate, endDate });
-    
-    try {
-      setIsLoading(true);
-      
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999); // Fin de journée
-      
-      console.log('📅 Dates converties:', { start, end });
-      
-      // Requête pour récupérer les données dans la plage spécifiée
-      const timeEntriesQuery = query(
-        collection(db, 'timeEntries'),
-        where('userId', '==', currentUser.uid),
-        where('startTime', '>=', start),
-        where('startTime', '<=', end)
-      );
-      
-      console.log('🔍 Exécution de la requête Firebase...');
-      const timeEntriesSnapshot = await getDocs(timeEntriesQuery);
-      console.log(`📊 ${timeEntriesSnapshot.docs.length} entrées trouvées`);
-      
-      const filteredEntries = timeEntriesSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          projectId: data.projectId,
-          startTime: data.startTime.toDate(),
-          endTime: data.endTime?.toDate() || null,
-          description: data.description || '',
-        };
-      });
-
-      // Calculer les données des projets pour cette période
-      const projectTimes = new Map<string, number>();
-      filteredEntries.forEach((entry) => {
-        if (entry.endTime) {
-          const duration = entry.endTime.getTime() - entry.startTime.getTime();
-          const currentTime = projectTimes.get(entry.projectId) || 0;
-          projectTimes.set(entry.projectId, currentTime + duration);
-        }
-      });
-
-      console.log('⏰ Temps par projet calculé:', Object.fromEntries(projectTimes));
-
-      // Récupérer les informations des projets
-      const projectsQuery = query(collection(db, 'projects'), where('userId', '==', currentUser.uid));
-      const projectsSnapshot = await getDocs(projectsQuery);
-
-      const projectData = await Promise.all(
-        Array.from(projectTimes.entries()).map(async ([projectId, totalTime]) => {
-          const projectDoc = projectsSnapshot.docs.find(doc => doc.id === projectId);
-          return {
-            projectId, // ID unique pour chaque projet
-            projectName: projectDoc?.data()?.name || `Projet Inconnu (${projectId.substring(0, 6)})`,
-            totalTime,
-          };
-        })
-      );
-
-      // Trier et mettre à jour les stats
-      projectData.sort((a, b) => b.totalTime - a.totalTime);
-      const top5 = projectData.slice(0, 5);
-      
-      console.log('📈 Nouvelles données projet:', top5);
-      
-      // Fallback au cas où aucun projet n'est trouvé
-      if (top5.length === 0) {
-        console.log('⚠️ Aucun projet trouvé pour cette période, utilisation de données par défaut');
-        setStats(prevStats => ({
-          ...prevStats,
-          projectData: [
-            { projectId: 'no-projects', projectName: `Aucun projet - ${startDate} à ${endDate}`, totalTime: 0 }
-          ]
-        }));
-      } else {
-        setStats(prevStats => ({
-          ...prevStats,
-          projectData: top5
-        }));
-      }
-      
-    } catch (error) {
-      console.error('❌ Erreur lors du filtrage par dates:', error);
-      
-      // Afficher un message d'erreur convivial dans le graphique
-      setStats(prevStats => ({
-        ...prevStats,
-        projectData: [
-          { projectId: 'error', projectName: 'Erreur de filtrage', totalTime: 0 }
-        ]
-      }));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // La fonction handleDateRangeChange a été supprimée car elle n'est plus nécessaire.
+  // Les fonctionnalités de filtrage par date sont désormais gérées directement par le composant SimplePieChart
+  // et par la fonction handleChartPeriodChange
 
   const [stats, setStats] = React.useState<DashboardStats>({
     todayTime: 0,
@@ -761,6 +646,83 @@ const Dashboard: React.FC = () => {
       </Typography>
       
       <Grid container spacing={3}>
+        {/* Répartition des projets par temps */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              {t('Répartition des projets par temps')}
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {t('Sélectionner une période :')}
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Button 
+                  variant={chartPeriod === 'day' ? 'contained' : 'outlined'} 
+                  size="small" 
+                  onClick={() => handleChartPeriodChange('day')}
+                >
+                  {t('Aujourd\'hui')}
+                </Button>
+                <Button 
+                  variant={chartPeriod === 'week' ? 'contained' : 'outlined'} 
+                  size="small" 
+                  onClick={() => handleChartPeriodChange('week')}
+                >
+                  {t('Cette semaine')}
+                </Button>
+                <Button 
+                  variant={chartPeriod === 'month' ? 'contained' : 'outlined'} 
+                  size="small" 
+                  onClick={() => handleChartPeriodChange('month')}
+                >
+                  {t('Ce mois')}
+                </Button>
+                <Button 
+                  variant={chartPeriod === 'last30days' ? 'contained' : 'outlined'} 
+                  size="small" 
+                  onClick={() => handleChartPeriodChange('last30days')}
+                >
+                  {t('30 jours')}
+                </Button>
+                <Button 
+                  variant={chartPeriod === 'year' ? 'contained' : 'outlined'} 
+                  size="small" 
+                  onClick={() => handleChartPeriodChange('year')}
+                >
+                  {t('Cette année')}
+                </Button>
+              </Box>
+            </Box>
+
+            <SimplePieChart 
+              data={chartData} 
+              onDateChange={fetchTimeEntriesForChart} 
+              title={t('Répartition du temps par projet')}
+            />
+            {chartLoading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <CircularProgress size={24} />
+              </Box>
+            )}
+            {chartError && (
+              <Typography color="error" align="center" sx={{ mt: 2 }}>
+                {chartError}
+              </Typography>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Rapport hebdomadaire */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              {t('timeStats.weeklyReport')}
+            </Typography>
+            <WeeklyReport onTimeUpdate={() => fetchStats()} />
+          </Paper>
+        </Grid>
+        
         {/* Section seuil d'heures - AMÉLIORÉE */}
         <Grid item xs={12} md={6}>
           <Paper sx={paperStyle}>
@@ -820,26 +782,6 @@ const Dashboard: React.FC = () => {
               </Typography>
             )}
           </Paper>
-        </Grid>
-
-        {/* Section Top Projects avec graphique en camembert */}
-        <Grid item xs={12}>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => {
-              alert('Test direct depuis Dashboard');
-              handleDateRangeChange('2025-01-01', '2025-12-31');
-            }}
-            sx={{ mb: 2 }}
-          >
-            TESTER FILTRE DATES
-          </Button>
-          <TopProjectsPieChart 
-            projectData={stats.projectData} 
-            onPeriodChange={handlePeriodChange}
-            onDateRangeChange={handleDateRangeChange}
-          />
         </Grid>
 
         {/* Section Advanced Statistics - OPTIMISÉE */}
@@ -930,81 +872,6 @@ const Dashboard: React.FC = () => {
           </Grid>
         </Grid>
         
-        {/* Graphique en camembert des projets */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              {t('Répartition des projets par temps')}
-            </Typography>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {t('Sélectionner une période :')}
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <Button 
-                  variant={chartPeriod === 'day' ? 'contained' : 'outlined'} 
-                  size="small" 
-                  onClick={() => handleChartPeriodChange('day')}
-                >
-                  {t('Aujourd\'hui')}
-                </Button>
-                <Button 
-                  variant={chartPeriod === 'week' ? 'contained' : 'outlined'} 
-                  size="small" 
-                  onClick={() => handleChartPeriodChange('week')}
-                >
-                  {t('Cette semaine')}
-                </Button>
-                <Button 
-                  variant={chartPeriod === 'month' ? 'contained' : 'outlined'} 
-                  size="small" 
-                  onClick={() => handleChartPeriodChange('month')}
-                >
-                  {t('Ce mois')}
-                </Button>
-                <Button 
-                  variant={chartPeriod === 'last30days' ? 'contained' : 'outlined'} 
-                  size="small" 
-                  onClick={() => handleChartPeriodChange('last30days')}
-                >
-                  {t('30 jours')}
-                </Button>
-                <Button 
-                  variant={chartPeriod === 'year' ? 'contained' : 'outlined'} 
-                  size="small" 
-                  onClick={() => handleChartPeriodChange('year')}
-                >
-                  {t('Cette année')}
-                </Button>
-              </Box>
-            </Box>
-
-            <SimplePieChart 
-              data={chartData} 
-              onDateChange={fetchTimeEntriesForChart} 
-              title={t('Répartition du temps par projet')}
-            />
-            {chartLoading && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                <CircularProgress size={24} />
-              </Box>
-            )}
-            {chartError && (
-              <Typography color="error" align="center" sx={{ mt: 2 }}>
-                {chartError}
-              </Typography>
-            )}
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              {t('timeStats.weeklyReport')}
-            </Typography>
-            <WeeklyReport onTimeUpdate={() => fetchStats()} />
-          </Paper>
-        </Grid>
         
         <Grid item xs={12} md={6} lg={4}>
           <Paper sx={paperStyle}>
