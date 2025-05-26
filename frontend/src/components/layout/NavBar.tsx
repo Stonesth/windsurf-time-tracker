@@ -113,6 +113,7 @@ const NavBar = () => {
                 <MenuItem onClick={() => navigateTo('/projects')}>{t('nav.projects')}</MenuItem>
                 <MenuItem onClick={() => navigateTo('/task-search')}>{t('nav.taskSearch')}</MenuItem>
                 <MenuItem onClick={() => navigateTo('/daily')}>{t('nav.dailyTasks')}</MenuItem>
+                <MenuItem onClick={() => navigateTo('/pie-chart')}>Graphique Projets</MenuItem>
                 {userRole === UserRole.ADMIN && (
                   <MenuItem onClick={() => navigateTo('/admin')}>{t('nav.admin')}</MenuItem>
                 )}
@@ -138,6 +139,9 @@ const NavBar = () => {
               </Button>
               <Button color="inherit" component={Link} to="/daily">
                 {t('nav.dailyTasks')}
+              </Button>
+              <Button color="inherit" component={Link} to="/pie-chart">
+                Graphique Projets
               </Button>
             </>
           )}
