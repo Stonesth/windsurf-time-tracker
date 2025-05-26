@@ -60,9 +60,6 @@ const SimplePieChart: React.FC<SimplePieChartProps> = ({
           <Typography variant="body2">
             {`${t('hours')}: ${(data.value / 3600).toFixed(2)}`}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
-            {`${(payload[0].percent * 100).toFixed(1)}% du total`}
-          </Typography>
         </Paper>
       );
     }
