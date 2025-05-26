@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Box, Typography, TextField, Button, Paper, Grid, CircularProgress } from '@mui/material';
+import { Box, Typography, TextField, Button, Paper, Grid, CircularProgress, IconButton } from '@mui/material';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { useTranslation } from 'react-i18next';
 
 // Interface pour les données de projet
@@ -35,6 +37,30 @@ const SimplePieChart: React.FC<SimplePieChartProps> = ({
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  
+  // État pour les projets masqués
+  const [hiddenProjects, setHiddenProjects] = useState<Set<string>>(new Set());
+  
+  // Données filtrées (sans les projets masqués)
+  const [filteredData, setFilteredData] = useState<ProjectData[]>(data);
+  
+  // Effet pour filtrer les données lorsque les projets masqués changent
+  useEffect(() => {
+    // Filtre les données pour ne garder que les projets visibles
+    const visible = data.filter(item => !hiddenProjects.has(item.id));
+    setFilteredData(visible);
+  }, [data, hiddenProjects]);
+  
+  // Fonction pour basculer la visibilité d'un projet
+  const toggleProjectVisibility = (projectId: string) => {
+    const newHiddenProjects = new Set(hiddenProjects);
+    if (newHiddenProjects.has(projectId)) {
+      newHiddenProjects.delete(projectId);
+    } else {
+      newHiddenProjects.add(projectId);
+    }
+    setHiddenProjects(newHiddenProjects);
+  };
   
   // Fonction pour gérer le changement de date
   const handleDateSubmit = async () => {
@@ -116,11 +142,11 @@ const SimplePieChart: React.FC<SimplePieChartProps> = ({
         </Grid>
       </Grid>
       
-      {/* Affichage du message si aucune donnée */}
-      {data.length === 0 ? (
+      {/* Affichage du message si aucune donnée ou tous les projets masqués */}
+      {data.length === 0 || filteredData.length === 0 ? (
         <Box display="flex" justifyContent="center" alignItems="center" height="250px">
           <Typography variant="subtitle1" color="textSecondary">
-            {t('no_data_available')}
+            {data.length === 0 ? t('no_data_available') : t('all_projects_hidden')}
           </Typography>
         </Box>
       ) : (
@@ -130,7 +156,7 @@ const SimplePieChart: React.FC<SimplePieChartProps> = ({
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data}
+                  data={filteredData}
                   cx="50%"
                   cy="50%"
                   labelLine={true}
@@ -155,6 +181,17 @@ const SimplePieChart: React.FC<SimplePieChartProps> = ({
           <Box sx={{ mt: 2, p: 1, maxHeight: '200px', overflowY: 'auto', width: '100%' }}>
             {data.map((entry, index) => (
               <Box key={`legend-${entry.id}`} sx={{ display: 'flex', alignItems: 'flex-start', mb: 1, width: '100%' }}>
+                <IconButton 
+                  size="small" 
+                  onClick={() => toggleProjectVisibility(entry.id)}
+                  sx={{ padding: 0, mr: 1 }}
+                >
+                  {hiddenProjects.has(entry.id) ? (
+                    <VisibilityOffIcon fontSize="small" color="action" />
+                  ) : (
+                    <VisibilityIcon fontSize="small" color="primary" />
+                  )}
+                </IconButton>
                 <Box 
                   sx={{ 
                     width: 16, 
@@ -162,10 +199,18 @@ const SimplePieChart: React.FC<SimplePieChartProps> = ({
                     backgroundColor: entry.color || COLORS[index % COLORS.length],
                     mr: 1,
                     flexShrink: 0,
-                    mt: 0.5
+                    mt: 0.5,
+                    opacity: hiddenProjects.has(entry.id) ? 0.4 : 1
                   }} 
                 />
-                <Typography variant="body2" sx={{ wordBreak: 'break-word', width: 'calc(100% - 25px)' }}>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    wordBreak: 'break-word', 
+                    width: 'calc(100% - 50px)', 
+                    opacity: hiddenProjects.has(entry.id) ? 0.6 : 1
+                  }}
+                >
                   {entry.name} ({(entry.value / 3600).toFixed(1)}h - {Math.round((entry.value / data.reduce((sum, item) => sum + item.value, 0)) * 100)}%)
                 </Typography>
               </Box>
