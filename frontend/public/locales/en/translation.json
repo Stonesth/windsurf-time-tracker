@@ -43,7 +43,8 @@
     "todayTime": "Today's Time",
     "weekTime": "This Week's Time",
     "activeProjects": "Active Projects",
-    "activeTasks": "Active Tasks"
+    "activeTasks": "Active Tasks",
+    "noLongDays": "No days with long hours found for this period."
   },
   "projects": {
     "title": "Projects",

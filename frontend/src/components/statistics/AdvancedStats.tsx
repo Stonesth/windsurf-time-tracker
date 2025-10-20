@@ -187,41 +187,6 @@ const AdvancedStats: React.FC<AdvancedStatsProps> = ({
             </CardContent>
           </Card>
         </Grid>
-
-        {/* Top des projets */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                {t('statistics.topProjects')}
-              </Typography>
-              <Box sx={{ width: '100%', height: 300 }}>
-                <ResponsiveContainer>
-                  <BarChart
-                    data={filteredProjectData}
-                    layout="vertical"
-                    margin={{ left: 100 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" tickFormatter={(value) => formatDuration(value, true)} />
-                    <YAxis type="category" dataKey="projectName" />
-                    <Tooltip
-                      formatter={(value: number) => [
-                        formatDuration(value),
-                        t('statistics.duration'),
-                      ]}
-                    />
-                    <Bar
-                      dataKey="totalTime"
-                      fill={theme.palette.secondary.main}
-                      name={t('statistics.duration')}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
       </Grid>
     </Box>
   );

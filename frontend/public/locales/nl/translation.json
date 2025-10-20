@@ -43,7 +43,8 @@
     "todayTime": "Tijd Vandaag",
     "weekTime": "Tijd Deze Week",
     "activeProjects": "Actieve Projecten",
-    "activeTasks": "Actieve Taken"
+    "activeTasks": "Actieve Taken",
+    "noLongDays": "Geen dagen met lange uren gevonden voor deze periode."
   },
   "projects": {
     "title": "Projecten",

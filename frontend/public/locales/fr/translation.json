@@ -43,7 +43,8 @@
     "todayTime": "Temps aujourd'hui",
     "weekTime": "Temps cette semaine",
     "activeProjects": "Projets actifs",
-    "activeTasks": "Tâches actives"
+    "activeTasks": "Tâches actives",
+    "noLongDays": "Aucun jour avec de longues heures trouvé pour cette période."
   },
   "statistics": {
     "advanced": "Statistiques avancées",
