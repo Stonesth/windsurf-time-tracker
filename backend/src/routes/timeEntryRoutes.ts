@@ -7,6 +7,11 @@ const router: Router = express.Router();
 // Appliquer le middleware d'authentification à toutes les routes
 router.use(authMiddleware as RequestHandler);
 
+// Routes d'action de chronométrage (Start, Stop, Active)
+router.post('/start', timeEntryController.startTask as RequestHandler);
+router.post('/stop', timeEntryController.stopTask as RequestHandler);
+router.get('/active', timeEntryController.getActiveTask as RequestHandler);
+
 // Routes des entrées de temps
 router.get('/', timeEntryController.getTimeEntries as RequestHandler);
 router.post('/', timeEntryController.createTimeEntry as RequestHandler);

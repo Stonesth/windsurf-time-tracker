@@ -1,0 +1,24 @@
+version: 1
+project:
+  name: time-tracker
+  primaryLanguage: typescript
+  projectRoots:
+    - .
+tracker:
+  type: none
+naming:
+  includeTrackerId: false
+  globalSequence: true
+agents:
+  - gemini
+planner:
+  enabled: false
+  provider: google
+  mode: copy
+  budget:
+    maxFileReads: 25
+    maxContextBytes: 50000
+    maxDurationSeconds: 180
+  cache:
+    enabled: true
+  maxOutputTokens: 16384

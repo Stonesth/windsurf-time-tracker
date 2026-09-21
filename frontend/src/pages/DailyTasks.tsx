@@ -161,6 +161,51 @@ const DailyTasks = () => {
     }
   }, [location.search]);
 
+  // Optimisation Squad : charger les tags depuis le cache local (localStorage) une seule fois par session
+  useEffect(() => {
+    if (!currentUser) return;
+    const cacheKey = `timeTracker_tags_${currentUser.uid}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setExistingTags(parsed);
+          return;
+        }
+      } catch (e) {
+        console.warn('Erreur lecture cache tags:', e);
+      }
+    }
+
+    // Si aucun tag en cache, charger uniquement les 50 entrées les plus récentes (au lieu de toute la base)
+    const loadInitialTags = async () => {
+      try {
+        const recentTagsQuery = query(
+          collection(db, 'timeEntries'),
+          where('userId', '==', currentUser.uid),
+          orderBy('startTime', 'desc'),
+          limit(50)
+        );
+        const snap = await getDocs(recentTagsQuery);
+        const tagSet = new Set<string>();
+        snap.forEach((docSnap) => {
+          const d = docSnap.data();
+          if (d.tags && Array.isArray(d.tags)) {
+            d.tags.forEach((t: string) => tagSet.add(t));
+          }
+        });
+        const tagsList = Array.from(tagSet);
+        setExistingTags(tagsList);
+        localStorage.setItem(cacheKey, JSON.stringify(tagsList));
+      } catch (err) {
+        console.warn('Impossible de charger les tags récents:', err);
+      }
+    };
+
+    loadInitialTags();
+  }, [currentUser]);
+
   const formatDuration = (seconds: number) => {
     if (seconds === 0) return '0s';
 
@@ -217,24 +262,7 @@ const DailyTasks = () => {
       const endOfDay = new Date(selectedDate);
       endOfDay.setHours(23, 59, 59, 999);
 
-      const allTagsQuery = query(
-        collection(db, 'timeEntries'),
-        where('userId', '==', currentUser.uid)
-      );
-      
-      const allTagsSnapshot = await getDocs(allTagsQuery);
-      const allTags = new Set<string>();
-      
-      allTagsSnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.tags && Array.isArray(data.tags)) {
-          data.tags.forEach(tag => allTags.add(tag));
-        }
-      });
-      
-      console.log('Loaded all existing tags:', Array.from(allTags));
-      setExistingTags(Array.from(allTags));
-
+      // Requête ciblée uniquement sur la journée sélectionnée (zéro surconsommation de quota)
       const entriesQuery = query(
         collection(db, 'timeEntries'),
         where('userId', '==', currentUser.uid),

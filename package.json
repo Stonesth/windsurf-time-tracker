@@ -1,5 +1,12 @@
 {
+  "scripts": {
+    "squad": "squad",
+    "squad:doctor": "squad doctor",
+    "squad:console": "squad console",
+    "squad:status": "squad status"
+  },
   "devDependencies": {
-    "firebase-tools": "^14.4.0"
+    "firebase-tools": "^14.4.0",
+    "squad-kit": "^0.12.4"
   }
 }
