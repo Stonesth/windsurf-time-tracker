@@ -1,6 +1,7 @@
 import express, { Request, Response, RequestHandler } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { onRequest } from 'firebase-functions/v2/https';
 import { auth } from './config/firebase';
 import projectRoutes from './routes/projectRoutes';
 import timeEntryRoutes from './routes/timeEntryRoutes';
@@ -8,19 +9,21 @@ import timeEntryRoutes from './routes/timeEntryRoutes';
 // Load environment variables
 dotenv.config();
 
-const app = express();
+export const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: true }));
 app.use(express.json());
 
-// Basic health check route
-app.get('/health', ((req: Request, res: Response) => {
-  res.status(200).json({ status: 'OK', message: 'Server is running' });
-}) as RequestHandler);
+// Basic health check route (supporte /health et /api/health)
+const healthHandler: RequestHandler = (req: Request, res: Response) => {
+  res.status(200).json({ status: 'OK', message: 'Server is running', timestamp: new Date().toISOString() });
+};
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 // Test auth route
-app.get('/auth/test', (async (req: Request, res: Response) => {
+const authTestHandler: RequestHandler = async (req: Request, res: Response) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -40,13 +43,24 @@ app.get('/auth/test', (async (req: Request, res: Response) => {
     console.error('Error verifying token:', error);
     res.status(401).json({ error: 'Invalid token' });
   }
-}) as RequestHandler);
+};
+app.get('/auth/test', authTestHandler);
+app.get('/api/auth/test', authTestHandler);
 
-// Routes
+// Routes (supporte à la fois avec et sans préfixe /api pour les rewrites Firebase Hosting)
 app.use('/api/projects', projectRoutes);
+app.use('/projects', projectRoutes);
 app.use('/api/time-entries', timeEntryRoutes);
+app.use('/time-entries', timeEntryRoutes);
 
-const port = process.env.PORT || 3001;
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+// Export Cloud Function pour déploiement Firebase Functions v2
+export const api = onRequest({ region: 'us-central1', cors: true }, app);
+
+// Démarrage local si exécuté directement (non-Cloud Function)
+if (!process.env.K_SERVICE && !process.env.FUNCTION_NAME && !process.env.FUNCTION_TARGET) {
+  const port = process.env.PORT || 3001;
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+}
+
