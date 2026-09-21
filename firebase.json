@@ -4,6 +4,7 @@
     "indexes": "config/firestore.indexes.json"
   },
   "hosting": {
+    "site": "timetrackingwindsurf",
     "public": "frontend/dist",
     "ignore": [
       "firebase.json",
